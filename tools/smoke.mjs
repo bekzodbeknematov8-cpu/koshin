@@ -36,6 +36,17 @@ for (const idx of (process.env.LEVELS || '').split(',').filter(Boolean)) {
   await page.waitForTimeout(250);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/level-${idx}.png` });
 }
+// Kunlik Naqsh: markaz → o'ynash → bot bilan oxirigacha
+if (await page.evaluate(() => !!(window.__open && window.__open.daily))) {
+  await page.evaluate(() => window.__open.daily());
+  await page.waitForTimeout(200);
+  if (process.env.SHOTS) await page.screenshot({ path: process.env.SHOTS + '/daily-hub.png' });
+  await page.mouse.click(195, 844 * 0.72);
+  await page.waitForTimeout(200);
+  const st = await page.evaluate(() => window.__koshin());
+  if (st.scene === 'map' || st.moves !== 0) throw new Error('kunlik o\'yin ochilmadi');
+  if (process.env.SHOTS) await page.screenshot({ path: process.env.SHOTS + '/daily-game.png' });
+}
 await page.evaluate(() => window.__open && window.__open.endless());
 await page.waitForTimeout(200);
 // Pastdagi har bir shaklni maydon markaziga sudrab ko'ramiz

@@ -6,6 +6,9 @@ import { createProgress, recordResult, sanitizeProgress } from './logic/progress
 import { sanitizeWallet, addCoins, levelReward, endlessReward } from './logic/powerups.js';
 import { pickLanguage, setLanguage } from './i18n.js';
 import { drawRoundButton, hit } from './ui/widgets.js';
+import { createDailyHub } from './ui/dailyMode.js';
+import { sanitizeDailyState, canStart, rollDay, dayNumber } from './logic/daily.js';
+import { submitScore } from './net/leaderboard.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -91,6 +94,8 @@ let best = Number(load('koshin.best', 0)) || 0;
 const wallet = sanitizeWallet(load('koshin.wallet', null));
 const saveWallet = () => save('koshin.wallet', wallet);
 const walletHooks = { wallet: () => wallet, onWallet: saveWallet };
+const daily = sanitizeDailyState(load('koshin.daily', null));
+const saveDaily = () => save('koshin.daily', daily);
 
 resize();
 
@@ -121,17 +126,24 @@ function openEndless() {
     bestX: 60,
     ...walletHooks,
     onMove(game) { if (game.score > best) { best = game.score; save('koshin.best', best); } },
-    onOver(game) { addCoins(wallet, endlessReward(game.score)); saveWallet(); },
+    onOver(game) { addCoins(wallet, endlessReward(game.score)); saveWallet(); submitScore('endless', { score: game.score }); },
     pointerDown(x, y) { if (hit(x, y, 30, 30, 24)) { openMap(); return true; } return false; },
     drawHUD(c) { drawRoundButton(c, 30, 30, 20, 'back', { fill: 'rgba(240,192,74,0.9)' }); },
   });
   app.setScene(screen);
 }
 
+function openDaily() {
+  app.setScene(createDailyHub(app, { getState: () => daily, saveState: saveDaily, wallet, onWallet: saveWallet, onBack: () => openMap() }));
+}
+
 const map = createMapScreen(app, {
   getProgress: () => progress,
   onPlay: openLevel,
-  buttons: [{ icon: 'infinity', onTap: openEndless }],
+  buttons: [
+    { icon: 'infinity', onTap: openEndless },
+    { icon: 'calendar', onTap: openDaily, badge: () => (canStart(rollDay(daily, dayNumber())) ? '!' : null) },
+  ],
   wallet: () => wallet,
 });
 openMap();
@@ -141,4 +153,4 @@ window.__koshin = () => {
   return g ? { score: g.score, moves: g.moves, over: g.over, status: g.status } : { scene: 'map' };
 };
 window.__app = app;
-window.__open = { level: openLevel, endless: openEndless, map: openMap };
+window.__open = { level: openLevel, endless: openEndless, map: openMap, daily: openDaily };

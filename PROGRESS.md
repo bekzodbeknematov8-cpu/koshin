@@ -2,7 +2,7 @@
 
 Ishlayapti: 2026-11-25 05:28 UTC
 
-Keyingi bosqich: **8** (Kunlik Naqsh va ulashish; Cheksiz rejim)
+Keyingi bosqich: **9** (topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, sozlamalar, 4 til)
 
 ## Bosqichlar holati
 - [x] 1. Loyiha tuzilmasi, 8x8 maydon, sudrab qo'yish — 2026-11-24
@@ -12,7 +12,7 @@ Keyingi bosqich: **8** (Kunlik Naqsh va ulashish; Cheksiz rejim)
 - [x] 5. Sarguzasht: bosqich generatori, maqsadlar, yulduzlar, Ipak Yo'li xaritasi — 2026-11-25
 - [x] 6. To'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy yo'l" — 2026-11-25
 - [x] 7. Kuchaytirgichlar va tanga tizimi — 2026-11-25
-- [ ] 8. Kunlik Naqsh va ulashish; Cheksiz rejim
+- [x] 8. Kunlik Naqsh va ulashish; Cheksiz rejim — 2026-11-25
 - [ ] 9. Topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, sozlamalar, 4 til
 - [ ] 10. Saqlash, PWA, internetsiz ishlash, tezlikni optimallashtirish
 - [ ] 11. Yakuniy umumiy test, GitHub Pages'ga joylash yo'riqnomasi
@@ -72,3 +72,11 @@ Keyingi bosqich: **8** (Kunlik Naqsh va ulashish; Cheksiz rejim)
 - UI: pastda 4 tugma (belgi + soni yoki narxi), nishonga olish rejimi (bomba uchun 3x3 ko'rsatma), tanga yetmasa tugma silkinadi; tangalar o'yin va xarita ekranida; g'alaba oynasida "+N tanga". Ipak Yo'li tangasi belgisi (to'rtburchak teshikli).
 - Joylashuv: maydon + shakllar + tugmalar paneli kichik ekranlarga (iPhone SE) ham sig'adi.
 - Testlar: 68/68; tutun testi bolg'ani brauzerda bosib tekshiradi.
+
+### 2026-11-25 — 8-bosqich
+- Qilindi: `daily.js` — kun raqami (2026-01-01 = #1, telefonning mahalliy sanasi bo'yicha), sana seed'i; hamma uchun bir xil boshlang'ich simmetrik naqsh + 30 ta shaklning bir xil ketma-ketligi (maydondan mustaqil → natijalarni solishtirish adolatli). Kuniga 1 urinish + reklama bilan yana 1, ketma-ket kunlar seriyasi, har 7-kun mukofoti (200 tanga + bomba), kun o'tkazib yuborilsa seriya uziladi.
+- Ulashish: `Koshin #128 🟦🟨🟦⬜🟨 2450` (har bir uchlik uchun: ⬜ — qator yo'q, 🟦 — 1 qator, 🟨 — combo), `navigator.share` yoki nusxa olish.
+- Cheksiz rejim: shaxsiy rekord saqlanadi, o'yin oxirida tanga; `src/net/leaderboard.js` — global reyting uchun tayyor API joyi (server manzili berilmaguncha jim ishlaydi).
+- UI: xaritada kalendar tugmasi ("!" — bugun o'ynalmagan), Kunlik markaz (kun raqami, seriya alangasi, 7 kunlik nuqtalar, urinishlar, o'ynash/reklama/ulashish), Kunlik o'yin ekrani (qolgan uchliklar chizig'i, natija oynasida rangli kvadratlar va ulashish).
+- Testlar: 77/77; tutun testi kunlik markaz va o'yinni ochadi.
+- Tuzatilgan xato: 7-kun mukofoti ikkinchi marta (14-kun) berilmasdi — `claimed` mantiqi noto'g'ri edi → seriya kuniga bir marta oshgani uchun mukofot shu paytda beriladi.
