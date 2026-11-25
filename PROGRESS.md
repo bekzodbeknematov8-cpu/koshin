@@ -1,5 +1,7 @@
 # Koshin — rivojlanish jurnali
 
+Ishlayapti: yo'q
+
 Keyingi bosqich: **2** (qator/ustun tozalash, ochko, combo, streak, o'yin tugashi)
 
 ## Bosqichlar holati
