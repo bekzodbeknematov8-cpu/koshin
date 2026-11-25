@@ -1,0 +1,409 @@
+// O'yin ekrani: maydon, shakllar, sudrab qo'yish, effektlar.
+// Rejimlar (sarguzasht/kunlik/cheksiz) shu ekranni `hooks` orqali sozlaydi.
+import { createGame, tryPlace } from '../logic/game.js';
+import { canPlace, placePiece, EMPTY, BOARD_SIZE } from '../logic/board.js';
+import { findFullLines } from '../logic/score.js';
+import { shapeSize } from '../logic/shapes.js';
+import { tileSprite, emptyCellSprite, rr } from '../render/tiles.js';
+import { backgroundCanvas } from '../render/background.js';
+import { UI, FONT } from '../render/palette.js';
+import { createParticles, burst, stepParticles, trimParticles } from '../fx/particles.js';
+import { easeOutBack, easeOutCubic, approach, clamp01 } from '../fx/ease.js';
+
+export function createGameScreen(app, hooks = {}) {
+  const N = BOARD_SIZE;
+  let game = hooks.createGame ? hooks.createGame() : createGame(Date.now());
+  let L = {};
+  let drag = null;       // { index, x, y, row, col, valid, preview }
+  let returning = [];    // noto'g'ri tashlangan shakl tray'ga qaytadi
+  let pops = [];         // qo'yilgan kataklar "pop"
+  let shrink = [];       // tozalanayotgan kataklar
+  let texts = [];        // combo yozuvlari
+  let shake = 0;
+  let shownScore = 0;
+  let overAt = 0;
+  const ps = createParticles(Date.now() & 0xffff);
+  let best = hooks.best ? hooks.best() : 0;
+
+  function layout(w, h) {
+    const top = hooks.hudHeight ? hooks.hudHeight : 86;
+    const boardPx = Math.min(w - 28, (h - top) * 0.62, 540);
+    const cell = boardPx / N;
+    const bx = (w - boardPx) / 2;
+    const by = top + Math.max(8, ((h - top) - boardPx - cell * 3.6) * 0.35);
+    const trayY = by + boardPx + cell * 0.55;
+    L = { w, h, cell, bx, by, boardPx, trayY, trayH: cell * 3, slotW: Math.min(w, boardPx + 40) / 3, trayX: (w - Math.min(w, boardPx + 40)) / 2, trayCell: cell * 0.56 };
+  }
+
+  const sprite = (color, s) => tileSprite(color, s * app.dpr);
+  const drawTile = (x, y, s, color) => ctxDraw(sprite(color, s), x, y, s);
+  function ctxDraw(img, x, y, s) { app.ctx.drawImage(img, x, y, s, s); }
+
+  function slotOrigin(i, piece, s) {
+    const { rows, cols } = shapeSize(piece.cells);
+    const cx = L.trayX + L.slotW * i + L.slotW / 2;
+    const cy = L.trayY + L.trayH / 2;
+    return { x: cx - (cols * s) / 2, y: cy - (rows * s) / 2 };
+  }
+
+  function dragOrigin(piece, x, y) {
+    const { rows, cols } = shapeSize(piece.cells);
+    const s = L.cell;
+    return { x: x - (cols * s) / 2, y: y - rows * s - s * 0.9 };
+  }
+
+  function updateSnap() {
+    const p = game.tray[drag.index];
+    const o = dragOrigin(p, drag.x, drag.y);
+    drag.col = Math.round((o.x - L.bx) / L.cell);
+    drag.row = Math.round((o.y - L.by) / L.cell);
+    drag.valid = canPlace(game.board, p.cells, drag.row, drag.col);
+    drag.preview = drag.valid ? findFullLines(placePiece(game.board, p.cells, drag.row, drag.col, p.color)) : null;
+  }
+
+  function drawFrame(ctx) {
+    const { bx, by, boardPx } = L;
+    const m = Math.max(8, L.cell * 0.22);
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = UI.boardFrame;
+    rr(ctx, bx - m, by - m, boardPx + m * 2, boardPx + m * 2, m * 1.2);
+    ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = UI.boardFrameEdge;
+    ctx.lineWidth = 1.5;
+    rr(ctx, bx - m + 3, by - m + 3, boardPx + m * 2 - 6, boardPx + m * 2 - 6, m);
+    ctx.stroke();
+    // hoshiyadagi mayda oltin nuqtalar (girih hoshiya)
+    ctx.fillStyle = UI.goldDeep;
+    const step = L.cell / 2;
+    for (let i = 0; i <= N * 2; i++) {
+      const t = bx + i * step;
+      for (const [x, y] of [[t, by - m / 2], [t, by + boardPx + m / 2], [bx - m / 2, by + i * step], [bx + boardPx + m / 2, by + i * step]]) {
+        ctx.beginPath(); ctx.arc(x, y, 1.2, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
+
+  function drawHUD(ctx, now) {
+    const { w } = L;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = UI.text;
+    ctx.font = `bold 34px ${FONT}`;
+    ctx.fillText(String(Math.round(shownScore)), w / 2, L.by - Math.max(18, L.cell * 0.5));
+    // rekord
+    ctx.textAlign = 'left';
+    ctx.font = `bold 16px ${FONT}`;
+    ctx.fillStyle = UI.gold;
+    drawCrown(ctx, 16, 18, 16);
+    ctx.fillText(String(Math.max(best, game.score)), 38, 32);
+    // streak alangasi
+    if (game.streak > 1) {
+      const pulse = 1 + 0.08 * Math.sin(now / 120);
+      ctx.save();
+      ctx.translate(w - 40, 26);
+      ctx.scale(pulse, pulse);
+      drawFlame(ctx, 0, 0, 14);
+      ctx.restore();
+      ctx.textAlign = 'right';
+      ctx.fillStyle = UI.gold;
+      ctx.fillText('×' + game.streak, w - 58, 32);
+    }
+    if (hooks.drawHUD) hooks.drawHUD(ctx, L, game, now);
+  }
+
+  function draw(now, dt) {
+    const ctx = app.ctx;
+    const { w, h, cell, bx, by } = L;
+    ctx.drawImage(backgroundCanvas(w, h, app.dpr), 0, 0, w, h);
+    shownScore = approach(shownScore, game.score, dt, 8);
+
+    ctx.save();
+    if (shake > 0) {
+      const k = shake * 8;
+      ctx.translate((Math.random() - 0.5) * k, (Math.random() - 0.5) * k);
+      shake = Math.max(0, shake - dt * 2.5);
+    }
+    drawFrame(ctx);
+    const empty = emptyCellSprite(cell * app.dpr);
+    const popMap = new Map();
+    pops = pops.filter((p) => now - p.t < 260);
+    for (const p of pops) popMap.set(p.r * N + p.c, (now - p.t) / 260);
+    for (let r = 0; r < N; r++)
+      for (let c = 0; c < N; c++) {
+        const x = bx + c * cell, y = by + r * cell;
+        ctx.drawImage(empty, x, y, cell, cell);
+        const v = game.board[r][c];
+        if (v === EMPTY) continue;
+        const k = popMap.get(r * N + c);
+        if (k !== undefined) {
+          const s = cell * (0.75 + 0.25 * easeOutBack(k, 3));
+          drawTile(x + (cell - s) / 2, y + (cell - s) / 2, s, v);
+        } else drawTile(x, y, cell, v);
+        if (hooks.drawCellOverlay) hooks.drawCellOverlay(ctx, game, r, c, x, y, cell, now);
+      }
+    if (hooks.drawBoardOverlay) hooks.drawBoardOverlay(ctx, game, L, now);
+
+    // ko'rsatma: qayerga tushadi + qaysi qatorlar tozalanadi
+    if (drag && drag.valid) {
+      const p = game.tray[drag.index];
+      ctx.globalAlpha = 0.42;
+      for (const [dr, dc] of p.cells) drawTile(bx + (drag.col + dc) * cell, by + (drag.row + dr) * cell, cell, p.color);
+      ctx.globalAlpha = 1;
+      const pv = drag.preview;
+      if (pv && (pv.rows.length || pv.cols.length)) {
+        const a = 0.25 + 0.15 * Math.sin(now / 90);
+        ctx.fillStyle = `rgba(245,197,66,${a})`;
+        for (const r of pv.rows) ctx.fillRect(bx, by + r * cell, L.boardPx, cell);
+        for (const c of pv.cols) ctx.fillRect(bx + c * cell, by, cell, L.boardPx);
+      }
+    }
+
+    // tozalanayotgan kataklar
+    shrink = shrink.filter((s) => now - s.t < 320);
+    for (const s of shrink) {
+      const k = easeOutCubic((now - s.t) / 320);
+      const size = cell * (1 - k);
+      ctx.globalAlpha = 1 - k * 0.6;
+      drawTile(bx + s.c * cell + (cell - size) / 2, by + s.r * cell + (cell - size) / 2, size, s.color);
+      ctx.globalAlpha = 1;
+    }
+
+    // tray
+    game.tray.forEach((p, i) => {
+      if (!p || (drag && drag.index === i) || returning.some((r) => r.index === i)) return;
+      const s = L.trayCell;
+      const o = slotOrigin(i, p, s);
+      const fits = hooks.fits ? hooks.fits(game, p) : true;
+      ctx.globalAlpha = fits ? 1 : 0.35;
+      for (const [dr, dc] of p.cells) drawTile(o.x + dc * s, o.y + dr * s, s, p.color);
+      ctx.globalAlpha = 1;
+    });
+    returning = returning.filter((r) => now - r.t < 180);
+    for (const r of returning) {
+      const p = game.tray[r.index];
+      if (!p) continue;
+      const k = easeOutCubic((now - r.t) / 180);
+      const s = L.cell + (L.trayCell - L.cell) * k;
+      const t = slotOrigin(r.index, p, L.trayCell);
+      const x = r.x + (t.x - r.x) * k, y = r.y + (t.y - r.y) * k;
+      for (const [dr, dc] of p.cells) drawTile(x + dc * s, y + dr * s, s, p.color);
+    }
+    if (drag) {
+      const p = game.tray[drag.index];
+      const o = dragOrigin(p, drag.x, drag.y);
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.45)';
+      ctx.shadowBlur = 14;
+      ctx.shadowOffsetY = 8;
+      for (const [dr, dc] of p.cells) drawTile(o.x + dc * cell, o.y + dr * cell, cell, p.color);
+      ctx.restore();
+    }
+
+    // oltin chang
+    stepParticles(ps, dt);
+    for (const p of ps.list) {
+      const k = p.life / p.max;
+      ctx.globalAlpha = 1 - k;
+      ctx.fillStyle = p.color;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.spin);
+      ctx.fillRect(-p.r, -p.r, p.r * 2, p.r * 2);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    // combo yozuvlari
+    texts = texts.filter((t) => now - t.t < t.dur);
+    for (const t of texts) {
+      const k = (now - t.t) / t.dur;
+      const sc = easeOutBack(clamp01(k * 3), 2.2);
+      ctx.save();
+      ctx.globalAlpha = k > 0.7 ? 1 - (k - 0.7) / 0.3 : 1;
+      ctx.translate(t.x, t.y - k * 30);
+      ctx.scale(sc, sc);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `bold ${t.size}px ${FONT}`;
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = 'rgba(20,20,60,0.85)';
+      ctx.strokeText(t.text, 0, 0);
+      ctx.fillStyle = t.color || UI.gold;
+      ctx.fillText(t.text, 0, 0);
+      ctx.restore();
+    }
+
+    drawHUD(ctx, now);
+
+    if (game.over && !(hooks.customOver)) drawGameOver(ctx, now);
+    else if (game.over && hooks.drawOver) hooks.drawOver(ctx, L, game, now);
+  }
+
+  function drawGameOver(ctx, now) {
+    const k = easeOutCubic((now - overAt) / 400);
+    const { w, h } = L;
+    ctx.fillStyle = `rgba(5,10,30,${0.72 * k})`;
+    ctx.fillRect(0, 0, w, h);
+    ctx.save();
+    ctx.globalAlpha = k;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = UI.text;
+    ctx.font = `bold 52px ${FONT}`;
+    ctx.fillText(String(game.score), w / 2, h * 0.4);
+    ctx.fillStyle = UI.gold;
+    drawCrown(ctx, w / 2 - 50, h * 0.4 + 36, 18);
+    ctx.font = `bold 20px ${FONT}`;
+    ctx.fillText(String(best), w / 2 + 10, h * 0.4 + 46);
+    drawRestartButton(ctx, w / 2, h * 0.62, 38);
+    ctx.restore();
+  }
+
+  function onPlaced(res, piece) {
+    const now = performance.now();
+    for (const [r, c] of res.placed) pops.push({ r, c, t: now });
+    for (const c of res.cleared) {
+      shrink.push({ ...c, t: now });
+      burst(ps, L.bx + (c.c + 0.5) * L.cell, L.by + (c.r + 0.5) * L.cell, L.cell, res.lines > 1 ? 9 : 6);
+    }
+    trimParticles(ps);
+    const cx = L.bx + L.boardPx / 2, cy = L.by + L.boardPx / 2;
+    if (res.perfect) texts.push({ text: '✦ ✦ ✦', x: cx, y: cy - 40, size: 46, t: now, dur: 1300, color: UI.turq });
+    if (res.lines > 1) {
+      texts.push({ text: '×' + res.lines, x: cx, y: cy, size: 40 + res.lines * 8, t: now, dur: 1000 });
+      shake = Math.min(1, 0.25 + res.lines * 0.15);
+    } else if (res.lines === 1 && res.streak > 1) {
+      texts.push({ text: '🔥' + res.streak, x: cx, y: cy, size: 36, t: now, dur: 800 });
+    }
+    if (res.lines) {
+      texts.push({ text: '+' + res.gained, x: cx, y: cy + 50, size: 24, t: now, dur: 900, color: UI.text });
+      app.vibrate(res.lines > 1 ? [18, 30, 18] : 12);
+    }
+    app.sound && app.sound(res.lines ? (res.lines > 1 ? 'combo' : 'clear') : 'place', res);
+    if (game.score > best) best = game.score;
+    if (hooks.onMove) hooks.onMove(game, res, piece);
+    if (res.over) { overAt = now + 250; if (hooks.onOver) hooks.onOver(game); }
+  }
+
+  function pickTray(x, y) {
+    if (y < L.trayY - L.cell * 0.2 || y > L.trayY + L.trayH + L.cell) return -1;
+    const i = Math.floor((x - L.trayX) / L.slotW);
+    return i >= 0 && i < 3 && game.tray[i] ? i : -1;
+  }
+
+  function restartHit(x, y) {
+    return Math.hypot(x - L.w / 2, y - L.h * 0.62) < 50;
+  }
+
+  const screen = {
+    get game() { return game; },
+    set game(g) { game = g; shownScore = g.score; },
+    get layoutInfo() { return L; },
+    layout,
+    draw,
+    active(now) {
+      return !!drag || returning.length || pops.length || shrink.length || texts.length || ps.list.length || shake > 0 ||
+        Math.round(shownScore) !== game.score || (game.over && now - overAt < 500) || (game.streak > 1) || (hooks.animating && hooks.animating(now));
+    },
+    pointerDown(x, y) {
+      if (game.over) {
+        if (hooks.onOverTap) { hooks.onOverTap(x, y, L); return; }
+        if (restartHit(x, y) && performance.now() - overAt > 300) screen.restart();
+        return;
+      }
+      if (hooks.pointerDown && hooks.pointerDown(x, y, L, game)) return;
+      const i = pickTray(x, y);
+      if (i < 0) return;
+      drag = { index: i, x, y };
+      updateSnap();
+      app.sound && app.sound('pick');
+    },
+    pointerMove(x, y) {
+      if (!drag) return;
+      drag.x = x; drag.y = y;
+      updateSnap();
+    },
+    pointerUp() {
+      if (!drag) return;
+      const d = drag;
+      drag = null;
+      const piece = game.tray[d.index];
+      if (d.valid) {
+        const res = tryPlace(game, d.index, d.row, d.col);
+        if (res) { onPlaced(res, piece); return; }
+      }
+      const o = dragOrigin(piece, d.x, d.y);
+      returning.push({ index: d.index, x: o.x, y: o.y, t: performance.now() });
+    },
+    pointerCancel() { drag = null; },
+    restart() {
+      game = hooks.createGame ? hooks.createGame() : createGame(Date.now());
+      shownScore = 0; texts = []; pops = []; shrink = [];
+      if (hooks.onRestart) hooks.onRestart(game);
+    },
+    // kuchaytirgichlar va boshqa rejimlar uchun effektlar
+    fxClear(cells) {
+      const now = performance.now();
+      for (const c of cells) {
+        shrink.push({ ...c, t: now });
+        burst(ps, L.bx + (c.c + 0.5) * L.cell, L.by + (c.r + 0.5) * L.cell, L.cell, 6);
+      }
+      trimParticles(ps);
+    },
+    fxText(text, opts = {}) {
+      texts.push({ text, x: opts.x ?? L.w / 2, y: opts.y ?? L.by + L.boardPx / 2, size: opts.size || 34, t: performance.now(), dur: opts.dur || 1000, color: opts.color });
+    },
+    fxOnPlaced: onPlaced,
+    setBest(v) { best = v; },
+  };
+  return screen;
+}
+
+// --- Belgilar (matnsiz tushunarli bo'lishi uchun) ---
+export function drawCrown(ctx, x, y, s) {
+  ctx.save();
+  ctx.fillStyle = UI.gold;
+  ctx.beginPath();
+  ctx.moveTo(x, y + s * 0.85);
+  ctx.lineTo(x, y + s * 0.2);
+  ctx.lineTo(x + s * 0.3, y + s * 0.5);
+  ctx.lineTo(x + s * 0.5, y);
+  ctx.lineTo(x + s * 0.7, y + s * 0.5);
+  ctx.lineTo(x + s, y + s * 0.2);
+  ctx.lineTo(x + s, y + s * 0.85);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+export function drawFlame(ctx, x, y, s) {
+  ctx.save();
+  const g = ctx.createLinearGradient(x, y - s, x, y + s);
+  g.addColorStop(0, '#ffe08a');
+  g.addColorStop(1, '#e0561f');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(x, y - s);
+  ctx.bezierCurveTo(x + s * 0.9, y - s * 0.2, x + s * 0.8, y + s, x, y + s);
+  ctx.bezierCurveTo(x - s * 0.8, y + s, x - s * 0.9, y - s * 0.2, x, y - s);
+  ctx.fill();
+  ctx.restore();
+}
+
+export function drawRestartButton(ctx, x, y, r) {
+  ctx.save();
+  ctx.fillStyle = UI.gold;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#1b2457';
+  ctx.lineWidth = r * 0.16;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(x, y, r * 0.5, -Math.PI * 0.35, Math.PI * 1.45); ctx.stroke();
+  const a = -Math.PI * 0.35, ax = x + Math.cos(a) * r * 0.5, ay = y + Math.sin(a) * r * 0.5;
+  ctx.fillStyle = '#1b2457';
+  ctx.beginPath(); ctx.moveTo(ax + r * 0.22, ay - r * 0.05); ctx.lineTo(ax - r * 0.08, ay - r * 0.28); ctx.lineTo(ax - r * 0.05, ay + r * 0.18); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}

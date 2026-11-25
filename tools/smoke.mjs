@@ -22,13 +22,33 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 await page.goto(`http://localhost:${port}/index.html${process.argv[3] || ''}`);
 await page.waitForTimeout(800);
 // Pastdagi har bir shaklni maydon markaziga sudrab ko'ramiz
-for (const x of [65, 195, 325]) {
-  await page.mouse.move(x, 700); await page.mouse.down();
-  await page.mouse.move(195, 400, { steps: 8 }); await page.mouse.up();
-  await page.waitForTimeout(150);
+const L = await page.evaluate(() => { const s = window.__app && window.__app.scene; return s && s.layoutInfo; });
+if (L && L.slotW) {
+  const targets = [[1, 1], [1, 5], [5, 2]];
+  for (let i = 0; i < 3; i++) {
+    const x = L.trayX + L.slotW * (i + 0.5), y = L.trayY + L.trayH / 2;
+    await page.mouse.move(x, y); await page.mouse.down();
+    const [r, c] = targets[i];
+    await page.mouse.move(L.bx + (c + 1) * L.cell, L.by + (r + 3.4) * L.cell, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+  }
 }
 await page.waitForTimeout(500);
 if (process.argv[2]) await page.screenshot({ path: process.argv[2] });
+// Ixtiyoriy: SHOTS=papka — tozalash va o'yin tugashi holatlarining skrinshotlari
+if (process.env.SHOTS && L && L.slotW) {
+  const dir = process.env.SHOTS;
+  await page.evaluate(() => { const s = window.__app.scene; s.restart(); const g = s.game; for (let c = 0; c < 7; c++) { g.board[3][c] = c % 5; g.board[4][c] = (c + 1) % 5; } g.tray[0] = { id: 'v2', cells: [[0, 0], [1, 0]], color: 2 }; window.__app.requestFrame(); });
+  await page.mouse.move(L.trayX + L.slotW * 0.5, L.trayY + L.trayH / 2); await page.mouse.down();
+  await page.mouse.move(L.bx + 7.5 * L.cell, L.by + 5.9 * L.cell, { steps: 6 });
+  await page.screenshot({ path: dir + '/drag.png' });
+  await page.mouse.up(); await page.waitForTimeout(120);
+  await page.screenshot({ path: dir + '/clear.png' });
+  await page.evaluate(() => { window.__app.scene.game.over = true; window.__app.requestFrame(); });
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: dir + '/over.png' });
+}
 const info = await page.evaluate(() => window.__koshin ? window.__koshin() : null);
 await browser.close(); server.close();
 console.log('info:', JSON.stringify(info));
