@@ -98,6 +98,7 @@ export function createGameScreen(app, hooks = {}) {
     for (const c of res.broken || []) burst(ps, L.bx + (c.c + 0.5) * L.cell, L.by + (c.r + 0.5) * L.cell, L.cell, 10, c.stone ? ['#a49a8a', '#7d7466', '#cfc6b6'] : ['#d8dce4', '#9aa3b2', '#c9a23a']);
     if (id === 'bomb') { shake = 0.6; app.vibrate([25, 20, 25]); } else app.vibrate(15);
     app.sound && app.sound(id);
+    app.track && app.track({ ...res, lines: 0, powerup: id });
     if (hooks.onMove) hooks.onMove(game, { ...res, lines: 0, powerup: id });
     if (game.over) overAt = now + 250;
     return true;
@@ -393,6 +394,7 @@ export function createGameScreen(app, hooks = {}) {
     }
     app.sound && app.sound(res.lines ? (res.lines > 1 ? 'combo' : 'clear') : 'place', res);
     if (game.score > best) best = game.score;
+    app.track && app.track(res);
     if (hooks.onMove) hooks.onMove(game, res, piece);
     if (res.over) { overAt = now + 250; if (hooks.onOver) hooks.onOver(game); }
   }

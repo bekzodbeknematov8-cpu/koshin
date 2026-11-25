@@ -33,7 +33,7 @@ function drawStreak(ctx, cx, y, s) {
   }
 }
 
-export function createDailyHub(app, { getState, saveState, wallet, onWallet, onBack }) {
+export function createDailyHub(app, { getState, saveState, wallet, onWallet, onBack, onFinish }) {
   let w = 0, h = 0, toast = null;
   const today = () => dayNumber(new Date());
 
@@ -59,6 +59,7 @@ export function createDailyHub(app, { getState, saveState, wallet, onWallet, onB
         if (reward) { wallet.coins += reward.coins; wallet.inv.bomb = (wallet.inv.bomb || 0) + reward.bomb; onWallet(); game.reward = reward; }
         saveState();
         submitScore('daily', { day: today(), score: game.score });
+        if (onFinish) onFinish(game, s);
       },
       onExit: () => app.setScene(hub),
     }));

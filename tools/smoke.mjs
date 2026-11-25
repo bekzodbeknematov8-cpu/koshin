@@ -21,7 +21,13 @@ page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 await page.goto(`http://localhost:${port}/index.html${process.argv[3] || ''}`);
 await page.waitForTimeout(800);
-if (process.env.SHOTS) await page.screenshot({ path: process.env.SHOTS + '/map.png' });
+await page.mouse.click(10, 400); await page.waitForTimeout(150); // sovg'a oynasini yopish
+if (process.env.SHOTS) await page.screenshot({ path: process.env.SHOTS + '/menu.png' });
+for (const sc of ['settings', 'quests', 'achievements', 'map']) {
+  const ok = await page.evaluate((n) => { if (!window.__open || !window.__open[n]) return true; window.__open[n](); return true; }, sc);
+  await page.waitForTimeout(150);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/${sc}.png` });
+}
 // Xarita: birinchi bosqich tuguniga bosish → bosqich ochiladi
 const lvl = await page.evaluate(() => {
   if (!window.__open) return null;

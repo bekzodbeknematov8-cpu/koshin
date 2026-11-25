@@ -4,7 +4,12 @@ import { createMapScreen } from './ui/mapScreen.js';
 import { createLevelScreen } from './ui/levelMode.js';
 import { createProgress, recordResult, sanitizeProgress } from './logic/progress.js';
 import { sanitizeWallet, addCoins, levelReward, endlessReward } from './logic/powerups.js';
-import { pickLanguage, setLanguage } from './i18n.js';
+import { pickLanguage, setLanguage, t } from './i18n.js';
+import { createSound } from './audio/sound.js';
+import { createMenu, createSettings, createQuestsScreen, createAchievementsScreen } from './ui/menuScreens.js';
+import { sanitizeStats, eventsFromMove, applyStatEvents, checkAchievements, rollQuests, trackQuests, claimableCount, createLogin, checkLogin } from './logic/meta.js';
+import { drawIcon } from './ui/widgets.js';
+import { UI, FONT } from './render/palette.js';
 import { drawRoundButton, hit } from './ui/widgets.js';
 import { createDailyHub } from './ui/dailyMode.js';
 import { sanitizeDailyState, canStart, rollDay, dayNumber } from './logic/daily.js';
@@ -13,11 +18,15 @@ import { submitScore } from './net/leaderboard.js';
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
+const toasts = [];
 const app = {
   canvas, ctx, dpr: 1, w: 0, h: 0,
   scene: null,
   vibrate(p) { try { if (app.settings.vibration !== false && navigator.vibrate) navigator.vibrate(p); } catch {} },
-  sound: null,
+  sound: null, // (name) => ovoz effekti
+  sfx(name) { app.sound && app.sound(name); },
+  audio: null,
+  toast(text, icon = 'trophy') { toasts.push({ text, icon, t: performance.now() }); requestFrame(); },
   settings: {},
   // Reklama uchun joy: hozircha darhol mukofot beradi (haqiqiy SDK keyin ulanadi).
   ads: { showRewarded(placement, onReward) { onReward(); } },
@@ -50,7 +59,8 @@ function frame(now) {
   last = now;
   if (app.scene) {
     app.scene.draw(now, dt);
-    if (app.scene.active && app.scene.active(now)) requestFrame();
+    const toastOn = drawToasts(now);
+    if ((app.scene.active && app.scene.active(now)) || toastOn) requestFrame();
     else last = 0;
   }
 }
@@ -61,6 +71,7 @@ canvas.addEventListener('pointerdown', (e) => {
   if (activePointer !== null) return; // bir vaqtda bitta barmoq
   activePointer = e.pointerId;
   try { canvas.setPointerCapture(e.pointerId); } catch {}
+  if (app.audio && !app.audio.started) app.audio.unlock(); // ovozga ruxsat faqat teginishdan keyin
   app.scene && app.scene.pointerDown && app.scene.pointerDown(...pos(e));
   requestFrame();
 });
@@ -88,7 +99,32 @@ window.addEventListener('resize', () => { resize(); requestFrame(); });
 const load = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } };
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
-setLanguage(pickLanguage(navigator.languages || [navigator.language]));
+// Yutuq va xabarlar lentasi (har qanday ekran ustida)
+function drawToasts(now) {
+  while (toasts.length && now - toasts[0].t > 2600) toasts.shift();
+  if (!toasts.length) return false;
+  const tt = toasts[0];
+  const k = Math.min(1, (now - tt.t) / 250, (2600 - (now - tt.t)) / 250);
+  const w = Math.min(app.w - 24, 360), x = (app.w - w) / 2, y = -60 + 76 * k;
+  ctx.save();
+  ctx.fillStyle = 'rgba(19,36,89,0.96)';
+  ctx.beginPath(); ctx.roundRect(x, y, w, 50, 14); ctx.fill();
+  ctx.strokeStyle = UI.gold; ctx.lineWidth = 1.5; ctx.stroke();
+  drawIcon(ctx, tt.icon, x + 30, y + 25, 12, UI.gold);
+  ctx.fillStyle = UI.text; ctx.font = `bold 16px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(tt.text, x + 54, y + 26);
+  ctx.restore();
+  return true;
+}
+
+const settings = Object.assign({ sound: true, music: true, vibration: true, lang: null }, load('koshin.settings', {}) || {});
+app.settings = settings;
+setLanguage(settings.lang || pickLanguage(navigator.languages || [navigator.language]));
+const audio = createSound(settings);
+app.audio = audio;
+app.sound = (name) => audio.play(name);
+document.addEventListener('visibilitychange', () => { if (document.hidden) audio.pause(); else if (audio.started) audio.resume(); });
+
 let progress = sanitizeProgress(load('koshin.progress', createProgress()));
 let best = Number(load('koshin.best', 0)) || 0;
 const wallet = sanitizeWallet(load('koshin.wallet', null));
@@ -96,8 +132,29 @@ const saveWallet = () => save('koshin.wallet', wallet);
 const walletHooks = { wallet: () => wallet, onWallet: saveWallet };
 const daily = sanitizeDailyState(load('koshin.daily', null));
 const saveDaily = () => save('koshin.daily', daily);
+const stats = sanitizeStats(load('koshin.stats', null));
+const unlocked = load('koshin.achievements', {}) || {};
+let quests = rollQuests(load('koshin.quests', null), dayNumber());
+const login = Object.assign(createLogin(), load('koshin.login', {}) || {});
+const saveMeta = () => { save('koshin.stats', stats); save('koshin.achievements', unlocked); save('koshin.quests', quests); };
+
+// Hodisalarni statistika, topshiriqlar va yutuqlarga yo'naltirish
+function record(events) {
+  quests = rollQuests(quests, dayNumber());
+  applyStatEvents(stats, events);
+  trackQuests(quests, events);
+  for (const a of checkAchievements(stats, unlocked)) {
+    addCoins(wallet, a.coins); saveWallet();
+    app.toast(t('ach.' + a.id) + '  +' + a.coins);
+    app.sfx('coin');
+  }
+  saveMeta();
+}
+app.track = (res) => record(eventsFromMove(res));
 
 resize();
+
+function openMenu() { app.setScene(menu); }
 
 function openMap(focusIndex) {
   if (focusIndex !== undefined) map.focus(focusIndex);
@@ -108,12 +165,15 @@ function openLevel(index) {
   app.setScene(createLevelScreen(app, index, {
     onExit: () => openMap(index),
     onWin: (i, stars, g) => {
-      const first = !progress.stars[i];
+      const prevStars = progress.stars[i] || 0;
       recordResult(progress, i, stars); save('koshin.progress', progress);
       // tanga: birinchi o'tishda to'liq, qayta o'tishda yarmi
-      const coins = Math.round(levelReward(stars, g.level.boss) * (first ? 1 : 0.5));
+      const coins = Math.round(levelReward(stars, g.level.boss) * (prevStars ? 0.5 : 1));
       addCoins(wallet, coins); saveWallet();
       g.coinsEarned = coins;
+      const ev = [{ type: 'levelsWon', n: 1 }, { type: 'stars', n: Math.max(0, stars - prevStars) }];
+      if (g.level.boss && !prevStars) ev.push({ type: 'bosses', n: 1 });
+      record(ev);
     },
     onNext: (i) => openLevel(i),
     extraHooks: walletHooks,
@@ -126,31 +186,84 @@ function openEndless() {
     bestX: 60,
     ...walletHooks,
     onMove(game) { if (game.score > best) { best = game.score; save('koshin.best', best); } },
-    onOver(game) { addCoins(wallet, endlessReward(game.score)); saveWallet(); submitScore('endless', { score: game.score }); },
-    pointerDown(x, y) { if (hit(x, y, 30, 30, 24)) { openMap(); return true; } return false; },
+    onOver(game) {
+      addCoins(wallet, endlessReward(game.score)); saveWallet();
+      submitScore('endless', { score: game.score });
+      record([{ type: 'endlessBest', max: game.score }]);
+      app.sfx('lose');
+    },
+    pointerDown(x, y) { if (hit(x, y, 30, 30, 24)) { openMenu(); return true; } return false; },
     drawHUD(c) { drawRoundButton(c, 30, 30, 20, 'back', { fill: 'rgba(240,192,74,0.9)' }); },
   });
   app.setScene(screen);
 }
 
-function openDaily() {
-  app.setScene(createDailyHub(app, { getState: () => daily, saveState: saveDaily, wallet, onWallet: saveWallet, onBack: () => openMap() }));
+function openDaily(back = openMenu) {
+  app.setScene(createDailyHub(app, {
+    getState: () => daily, saveState: saveDaily, wallet, onWallet: saveWallet, onBack: () => back(),
+    onFinish: (game, s) => record([{ type: 'dailyPlayed', n: 1 }, { type: 'dailyStreakBest', max: s.streak }]),
+  }));
+}
+
+function openSettings() {
+  app.setScene(createSettings(app, {
+    settings,
+    onChange(key) {
+      save('koshin.settings', settings);
+      if (key === 'lang') setLanguage(settings.lang);
+      if (key === 'music') { if (settings.music) audio.startMusic(); else audio.stopMusic(); }
+      if (key === 'vibration' && settings.vibration) app.vibrate(30);
+      if (key === 'sound' && settings.sound) app.sfx('button');
+    },
+    onBack: openMenu,
+  }));
+}
+
+function openQuests() {
+  quests = rollQuests(quests, dayNumber());
+  app.setScene(createQuestsScreen(app, { getQuests: () => quests, wallet, onClaim: () => { saveWallet(); saveMeta(); }, onBack: openMenu }));
+}
+
+function openAchievements() {
+  app.setScene(createAchievementsScreen(app, { getStats: () => stats, unlocked, onBack: openMenu }));
 }
 
 const map = createMapScreen(app, {
   getProgress: () => progress,
   onPlay: openLevel,
   buttons: [
+    { icon: 'home', onTap: openMenu },
+    { icon: 'calendar', onTap: () => openDaily(() => openMap()), badge: () => (canStart(rollDay(daily, dayNumber())) ? '!' : null) },
     { icon: 'infinity', onTap: openEndless },
-    { icon: 'calendar', onTap: openDaily, badge: () => (canStart(rollDay(daily, dayNumber())) ? '!' : null) },
   ],
   wallet: () => wallet,
 });
-openMap();
+
+const menu = createMenu(app, {
+  wallet: () => wallet,
+  badges: {
+    daily: () => (canStart(rollDay(daily, dayNumber())) ? '!' : null),
+    quests: () => { quests = rollQuests(quests, dayNumber()); const n = claimableCount(quests); return n || null; },
+  },
+  on: { play: () => openMap(), daily: () => openDaily(), endless: openEndless, quests: openQuests, achievements: openAchievements, settings: openSettings },
+});
+openMenu();
+
+// Kunlik kirish sovg'asi
+{
+  const gift = checkLogin(login, dayNumber());
+  if (gift) {
+    save('koshin.login', login);
+    addCoins(wallet, gift.coins);
+    if (gift.bomb) wallet.inv.bomb += gift.bomb;
+    saveWallet();
+    menu.showPopup({ icon: 'gift', title: t('login.title'), sub: t('login.day').replace('{n}', gift.day), coins: gift.coins });
+  }
+}
 
 window.__koshin = () => {
   const g = app.scene && app.scene.game;
-  return g ? { score: g.score, moves: g.moves, over: g.over, status: g.status } : { scene: 'map' };
+  return g ? { score: g.score, moves: g.moves, over: g.over, status: g.status } : { scene: app.scene === map ? 'map' : app.scene === menu ? 'menu' : 'other' };
 };
 window.__app = app;
-window.__open = { level: openLevel, endless: openEndless, map: openMap, daily: openDaily };
+window.__open = { level: openLevel, endless: openEndless, map: openMap, daily: openDaily, menu: openMenu, settings: openSettings, quests: openQuests, achievements: openAchievements };

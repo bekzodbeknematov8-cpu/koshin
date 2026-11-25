@@ -136,6 +136,60 @@ export function drawIcon(ctx, icon, x, y, s, color = '#1b2457') {
       break;
     }
     case 'coin': drawCoin(ctx, x, y, s); break;
+    case 'trophy': {
+      ctx.beginPath(); ctx.moveTo(x - s * 0.6, y - s * 0.75); ctx.lineTo(x + s * 0.6, y - s * 0.75); ctx.lineTo(x + s * 0.45, y); ctx.quadraticCurveTo(x, y + s * 0.3, x - s * 0.45, y); ctx.closePath(); ctx.fill();
+      ctx.lineWidth = s * 0.14;
+      ctx.beginPath(); ctx.arc(x - s * 0.62, y - s * 0.42, s * 0.25, Math.PI * 0.5, Math.PI * 1.5); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x + s * 0.62, y - s * 0.42, s * 0.25, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
+      ctx.fillRect(x - s * 0.1, y + s * 0.1, s * 0.2, s * 0.4);
+      ctx.fillRect(x - s * 0.4, y + s * 0.5, s * 0.8, s * 0.2);
+      break;
+    }
+    case 'list': {
+      for (let i = 0; i < 3; i++) {
+        const yy = y - s * 0.5 + i * s * 0.5;
+        ctx.beginPath(); ctx.arc(x - s * 0.6, yy, s * 0.11, 0, Math.PI * 2); ctx.fill();
+        ctx.fillRect(x - s * 0.35, yy - s * 0.08, s * 1.05, s * 0.16);
+      }
+      break;
+    }
+    case 'speaker': case 'speaker-off': {
+      ctx.beginPath(); ctx.moveTo(x - s * 0.8, y - s * 0.3); ctx.lineTo(x - s * 0.4, y - s * 0.3); ctx.lineTo(x, y - s * 0.7); ctx.lineTo(x, y + s * 0.7); ctx.lineTo(x - s * 0.4, y + s * 0.3); ctx.lineTo(x - s * 0.8, y + s * 0.3); ctx.closePath(); ctx.fill();
+      ctx.lineWidth = s * 0.14;
+      if (icon === 'speaker') { ctx.beginPath(); ctx.arc(x + s * 0.1, y, s * 0.45, -0.8, 0.8); ctx.stroke(); ctx.beginPath(); ctx.arc(x + s * 0.1, y, s * 0.75, -0.8, 0.8); ctx.stroke(); }
+      else { ctx.beginPath(); ctx.moveTo(x + s * 0.25, y - s * 0.35); ctx.lineTo(x + s * 0.85, y + s * 0.35); ctx.moveTo(x + s * 0.85, y - s * 0.35); ctx.lineTo(x + s * 0.25, y + s * 0.35); ctx.stroke(); }
+      break;
+    }
+    case 'note': case 'note-off': {
+      ctx.beginPath(); ctx.ellipse(x - s * 0.35, y + s * 0.5, s * 0.28, s * 0.2, -0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x + s * 0.45, y + s * 0.35, s * 0.28, s * 0.2, -0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.lineWidth = s * 0.13;
+      ctx.beginPath(); ctx.moveTo(x - s * 0.1, y + s * 0.5); ctx.lineTo(x - s * 0.1, y - s * 0.6); ctx.lineTo(x + s * 0.7, y - s * 0.75); ctx.lineTo(x + s * 0.7, y + s * 0.35); ctx.stroke();
+      if (icon === 'note-off') { ctx.lineWidth = s * 0.16; ctx.beginPath(); ctx.moveTo(x - s * 0.8, y - s * 0.8); ctx.lineTo(x + s * 0.9, y + s * 0.8); ctx.stroke(); }
+      break;
+    }
+    case 'vibrate': case 'vibrate-off': {
+      ctx.lineWidth = s * 0.14;
+      ctx.strokeRect(x - s * 0.3, y - s * 0.6, s * 0.6, s * 1.2);
+      ctx.beginPath(); ctx.moveTo(x - s * 0.55, y - s * 0.35); ctx.lineTo(x - s * 0.55, y + s * 0.35); ctx.moveTo(x + s * 0.55, y - s * 0.35); ctx.lineTo(x + s * 0.55, y + s * 0.35);
+      ctx.moveTo(x - s * 0.8, y - s * 0.2); ctx.lineTo(x - s * 0.8, y + s * 0.2); ctx.moveTo(x + s * 0.8, y - s * 0.2); ctx.lineTo(x + s * 0.8, y + s * 0.2); ctx.stroke();
+      if (icon === 'vibrate-off') { ctx.lineWidth = s * 0.16; ctx.beginPath(); ctx.moveTo(x - s * 0.9, y - s * 0.8); ctx.lineTo(x + s * 0.9, y + s * 0.8); ctx.stroke(); }
+      break;
+    }
+    case 'globe': {
+      ctx.lineWidth = s * 0.12;
+      ctx.beginPath(); ctx.arc(x, y, s * 0.75, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(x, y, s * 0.32, s * 0.75, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - s * 0.75, y); ctx.lineTo(x + s * 0.75, y); ctx.stroke();
+      break;
+    }
+    case 'gift': {
+      ctx.fillRect(x - s * 0.7, y - s * 0.15, s * 1.4, s * 0.9);
+      ctx.fillRect(x - s * 0.8, y - s * 0.45, s * 1.6, s * 0.3);
+      ctx.lineWidth = s * 0.14;
+      ctx.beginPath(); ctx.ellipse(x - s * 0.25, y - s * 0.6, s * 0.25, s * 0.15, 0.4, 0, Math.PI * 2); ctx.ellipse(x + s * 0.25, y - s * 0.6, s * 0.25, s * 0.15, -0.4, 0, Math.PI * 2); ctx.stroke();
+      break;
+    }
     default:
       break;
   }

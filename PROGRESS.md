@@ -2,7 +2,7 @@
 
 Ishlayapti: 2026-11-25 05:28 UTC
 
-Keyingi bosqich: **9** (topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, sozlamalar, 4 til)
+Keyingi bosqich: **10** (saqlash, PWA, internetsiz ishlash, tezlikni optimallashtirish)
 
 ## Bosqichlar holati
 - [x] 1. Loyiha tuzilmasi, 8x8 maydon, sudrab qo'yish — 2026-11-24
@@ -13,7 +13,7 @@ Keyingi bosqich: **9** (topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, s
 - [x] 6. To'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy yo'l" — 2026-11-25
 - [x] 7. Kuchaytirgichlar va tanga tizimi — 2026-11-25
 - [x] 8. Kunlik Naqsh va ulashish; Cheksiz rejim — 2026-11-25
-- [ ] 9. Topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, sozlamalar, 4 til — qisman (mantiq, ovoz sintezi, 4 til matnlari tayyor; menyu/sozlamalar UI qolgan)
+- [x] 9. Topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, sozlamalar, 4 til — 2026-11-25
 - [ ] 10. Saqlash, PWA, internetsiz ishlash, tezlikni optimallashtirish
 - [ ] 11. Yakuniy umumiy test, GitHub Pages'ga joylash yo'riqnomasi
 
@@ -80,3 +80,10 @@ Keyingi bosqich: **9** (topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, s
 - UI: xaritada kalendar tugmasi ("!" — bugun o'ynalmagan), Kunlik markaz (kun raqami, seriya alangasi, 7 kunlik nuqtalar, urinishlar, o'ynash/reklama/ulashish), Kunlik o'yin ekrani (qolgan uchliklar chizig'i, natija oynasida rangli kvadratlar va ulashish).
 - Testlar: 77/77; tutun testi kunlik markaz va o'yinni ochadi.
 - Tuzatilgan xato: 7-kun mukofoti ikkinchi marta (14-kun) berilmasdi — `claimed` mantiqi noto'g'ri edi → seriya kuniga bir marta oshgani uchun mukofot shu paytda beriladi.
+
+### 2026-11-25 — 9-bosqich
+- Qilindi: `meta.js` — statistika (qatorlar, combo, bosqichlar, yulduzlar, boss, olmos, muz, tosh, kuchaytirgichlar…), 18 ta yutuq (tanga mukofoti bilan, ochilganda yuqorida lenta chiqadi), kundalik 3 ta topshiriq (sana bo'yicha, har xil turdagi, mukofotni olish tugmasi), ketma-ket kirish sovg'asi (7 kunlik: 20…150 tanga + 7-kunda bomba).
+- Ovoz: `audio/synth.js` — dutor/rubob uslubidagi chertma tor (Karplus–Strong sintezi), doira (dum/tak), D ladida (ortirilgan sekunda bilan) qisqa effektlar va 6/8 o'lchovdagi generativ fon kuyi; `audio/sound.js` — WebAudio, ovoz/musiqa alohida o'chiriladi, ilova fonga o'tsa musiqa to'xtaydi, ovoz birinchi teginishdan keyin yoqiladi (brauzer talabi). Hech qanday tayyor audio fayl yo'q.
+- Tebranish sozlamaga bog'landi. Bosh menyu (Sarguzasht, Kunlik Naqsh, Cheksiz, Topshiriqlar, Yutuqlar, Sozlamalar), sozlamalar (ovoz, musiqa, tebranish, til: English/O'zbekcha/Русский/Türkçe), xaritada uyga qaytish tugmasi.
+- 4 til: menyu, topshiriqlar, yutuqlar, sovg'a matnlari; til avtomatik, sozlamadan o'zgartiriladi.
+- Testlar: 84/84 (ovoz sintezi ham Node'da tekshiriladi: so'nish, klik yo'qligi, lad, kuy deterministikligi). Tutun testi: menyu, sozlamalar, topshiriqlar, yutuqlar, xarita ekranlari xatosiz ochiladi.
