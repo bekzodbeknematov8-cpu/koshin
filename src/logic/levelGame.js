@@ -33,7 +33,7 @@ export function levelPlace(g, trayIndex, row, col) {
   g.movesLeft--;
   if (g.onGoalProgress) g.onGoalProgress(g, res);
   updateStatus(g);
-  return { ...res, status: g.status, stars: g.stars };
+  return { ...res, over: g.over, status: g.status, stars: g.stars };
 }
 
 export function updateStatus(g) {

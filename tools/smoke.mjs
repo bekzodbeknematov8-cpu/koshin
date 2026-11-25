@@ -21,6 +21,17 @@ page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 await page.goto(`http://localhost:${port}/index.html${process.argv[3] || ''}`);
 await page.waitForTimeout(800);
+if (process.env.SHOTS) await page.screenshot({ path: process.env.SHOTS + '/map.png' });
+// Xarita: birinchi bosqich tuguniga bosish → bosqich ochiladi
+const lvl = await page.evaluate(() => {
+  if (!window.__open) return null;
+  window.__open.level(0);
+  return window.__koshin();
+});
+if (lvl && !lvl.status) throw new Error('bosqich ochilmadi');
+if (process.env.SHOTS) { await page.waitForTimeout(300); await page.screenshot({ path: process.env.SHOTS + '/level.png' }); }
+await page.evaluate(() => window.__open && window.__open.endless());
+await page.waitForTimeout(200);
 // Pastdagi har bir shaklni maydon markaziga sudrab ko'ramiz
 const L = await page.evaluate(() => { const s = window.__app && window.__app.scene; return s && s.layoutInfo; });
 if (L && L.slotW) {

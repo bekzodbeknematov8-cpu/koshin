@@ -1,5 +1,10 @@
 // Ilova qobig'i: canvas, sahnalar (ekranlar), kirish hodisalari, kadr sikli.
 import { createGameScreen } from './ui/gameScreen.js';
+import { createMapScreen } from './ui/mapScreen.js';
+import { createLevelScreen } from './ui/levelMode.js';
+import { createProgress, recordResult, sanitizeProgress } from './logic/progress.js';
+import { pickLanguage, setLanguage } from './i18n.js';
+import { drawRoundButton, hit } from './ui/widgets.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -10,6 +15,8 @@ const app = {
   vibrate(p) { try { if (app.settings.vibration !== false && navigator.vibrate) navigator.vibrate(p); } catch {} },
   sound: null,
   settings: {},
+  // Reklama uchun joy: hozircha darhol mukofot beradi (haqiqiy SDK keyin ulanadi).
+  ads: { showRewarded(placement, onReward) { onReward(); } },
   setScene(s) {
     app.scene = s;
     if (s.layout) s.layout(app.w, app.h);
@@ -73,14 +80,50 @@ canvas.addEventListener('pointercancel', (e) => {
 });
 window.addEventListener('resize', () => { resize(); requestFrame(); });
 
-resize();
-let best = 0;
-try { best = Number(localStorage.getItem('koshin.best') || 0); } catch {}
-const screen = createGameScreen(app, {
-  best: () => best,
-  onMove(game) { if (game.score > best) { best = game.score; try { localStorage.setItem('koshin.best', String(best)); } catch {} } },
-});
-app.setScene(screen);
+// --- saqlash (10-bosqichda kengaytiriladi) ---
+const load = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
-window.__koshin = () => ({ score: screen.game.score, moves: screen.game.moves, over: screen.game.over });
+setLanguage(pickLanguage(navigator.languages || [navigator.language]));
+let progress = sanitizeProgress(load('koshin.progress', createProgress()));
+let best = Number(load('koshin.best', 0)) || 0;
+
+resize();
+
+function openMap(focusIndex) {
+  if (focusIndex !== undefined) map.focus(focusIndex);
+  app.setScene(map);
+}
+
+function openLevel(index) {
+  app.setScene(createLevelScreen(app, index, {
+    onExit: () => openMap(index),
+    onWin: (i, stars) => { recordResult(progress, i, stars); save('koshin.progress', progress); },
+    onNext: (i) => openLevel(i),
+  }));
+}
+
+function openEndless() {
+  const screen = createGameScreen(app, {
+    best: () => best,
+    bestX: 60,
+    onMove(game) { if (game.score > best) { best = game.score; save('koshin.best', best); } },
+    pointerDown(x, y) { if (hit(x, y, 30, 30, 24)) { openMap(); return true; } return false; },
+    drawHUD(c) { drawRoundButton(c, 30, 30, 20, 'back', { fill: 'rgba(240,192,74,0.9)' }); },
+  });
+  app.setScene(screen);
+}
+
+const map = createMapScreen(app, {
+  getProgress: () => progress,
+  onPlay: openLevel,
+  buttons: [{ icon: 'infinity', onTap: openEndless }],
+});
+openMap();
+
+window.__koshin = () => {
+  const g = app.scene && app.scene.game;
+  return g ? { score: g.score, moves: g.moves, over: g.over, status: g.status } : { scene: 'map' };
+};
 window.__app = app;
+window.__open = { level: openLevel, endless: openEndless, map: openMap };

@@ -97,8 +97,10 @@ export function createGameScreen(app, hooks = {}) {
     ctx.textAlign = 'left';
     ctx.font = `bold 16px ${FONT}`;
     ctx.fillStyle = UI.gold;
-    drawCrown(ctx, 16, 18, 16);
-    ctx.fillText(String(Math.max(best, game.score)), 38, 32);
+    if (!hooks.hideBest) {
+      drawCrown(ctx, hooks.bestX || 16, 18, 16);
+      ctx.fillText(String(Math.max(best, game.score)), (hooks.bestX || 16) + 22, 32);
+    }
     // streak alangasi
     if (game.streak > 1) {
       const pulse = 1 + 0.08 * Math.sin(now / 120);
@@ -239,8 +241,8 @@ export function createGameScreen(app, hooks = {}) {
 
     drawHUD(ctx, now);
 
-    if (game.over && !(hooks.customOver)) drawGameOver(ctx, now);
-    else if (game.over && hooks.drawOver) hooks.drawOver(ctx, L, game, now);
+    if (game.over && hooks.drawOver) { if (now >= overAt) hooks.drawOver(ctx, L, game, now - overAt); }
+    else if (game.over) drawGameOver(ctx, now);
   }
 
   function drawGameOver(ctx, now) {
@@ -307,11 +309,11 @@ export function createGameScreen(app, hooks = {}) {
     draw,
     active(now) {
       return !!drag || returning.length || pops.length || shrink.length || texts.length || ps.list.length || shake > 0 ||
-        Math.round(shownScore) !== game.score || (game.over && now - overAt < 500) || (game.streak > 1) || (hooks.animating && hooks.animating(now));
+        Math.round(shownScore) !== game.score || (game.over && now - overAt < 1500) || (game.streak > 1) || (hooks.animating && hooks.animating(now));
     },
     pointerDown(x, y) {
       if (game.over) {
-        if (hooks.onOverTap) { hooks.onOverTap(x, y, L); return; }
+        if (hooks.onOverTap) { if (performance.now() - overAt > 300) hooks.onOverTap(x, y, L, game); return; }
         if (restartHit(x, y) && performance.now() - overAt > 300) screen.restart();
         return;
       }
@@ -333,7 +335,7 @@ export function createGameScreen(app, hooks = {}) {
       drag = null;
       const piece = game.tray[d.index];
       if (d.valid) {
-        const res = tryPlace(game, d.index, d.row, d.col);
+        const res = hooks.place ? hooks.place(game, d.index, d.row, d.col) : tryPlace(game, d.index, d.row, d.col);
         if (res) { onPlaced(res, piece); return; }
       }
       const o = dragOrigin(piece, d.x, d.y);

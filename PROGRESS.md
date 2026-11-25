@@ -2,14 +2,14 @@
 
 Ishlayapti: 2026-11-25 05:28 UTC
 
-Keyingi bosqich: **5** (sarguzasht: bosqich generatori, maqsadlar, yulduzlar, Ipak Yo'li xaritasi)
+Keyingi bosqich: **6** (to'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy yo'l")
 
 ## Bosqichlar holati
 - [x] 1. Loyiha tuzilmasi, 8x8 maydon, sudrab qo'yish — 2026-11-24
 - [x] 2. Qator/ustun tozalash, ochko, combo, streak, o'yin tugashi — 2026-11-25
 - [x] 3. Shakl generatori va adolatlilik qoidasi — 2026-11-25
 - [x] 4. Koshin dizayni: plitkalar, fon, ranglar, animatsiyalar — 2026-11-25
-- [ ] 5. Sarguzasht: bosqich generatori, maqsadlar, yulduzlar, Ipak Yo'li xaritasi — qisman (mantiq tayyor, xarita UI qolgan)
+- [x] 5. Sarguzasht: bosqich generatori, maqsadlar, yulduzlar, Ipak Yo'li xaritasi — 2026-11-25
 - [ ] 6. To'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy yo'l"
 - [ ] 7. Kuchaytirgichlar va tanga tizimi
 - [ ] 8. Kunlik Naqsh va ulashish; Cheksiz rejim
@@ -47,3 +47,12 @@ Keyingi bosqich: **5** (sarguzasht: bosqich generatori, maqsadlar, yulduzlar, Ip
 - `src/ui/gameScreen.js` — o'yin ekrani alohida modul (keyingi rejimlar `hooks` orqali ulanadi); `main.js` — sahna/kadr sikli (faqat animatsiya bo'lganda chiziladi — batareya tejaladi), bitta barmoq qoidasi.
 - Animatsiyalar: qo'yilganda "pop", tozalanishda kichrayib oltin changga aylanish, qaysi qatorlar tozalanishini oldindan oltin bilan ko'rsatish, COMBO ×N, streak alangasi, PERFECT, ekran silkinishi, noto'g'ri tashlangan shakl joyiga qaytadi, matnsiz o'yin tugash ekrani (toj + ↻ tugmasi).
 - Testlar: 35/35. Brauzer tutun testi (Playwright) — xatosiz, skrinshotlar tekshirildi.
+
+### 2026-11-25 — 5-bosqich
+- Qilindi: `levels.js` — 7 shahar × 20 bosqich (Xiva → Buxoro → Samarqand → Shahrisabz → Toshkent → Qo'qon → Termiz), bosqichlar qoida asosida deterministik generatsiya qilinadi: maqsad (ochko / qatorlar / ikkalasi), yurishlar soni, qiyinlik egri chizig'i (har 5-bosqich yengilroq, boss biroz qiyin), dastlabki 3 bosqich — o'rgatish (oddiy shakllar). 140-dan keyin "Abadiy yo'l" indekslari (6-bosqichda to'liq).
+- `levelGame.js` — cheklangan yurishlar, maqsad, g'alaba/mag'lubiyat (yurish tugadi / joy qolmadi), 1–3 yulduz, "reklama ko'r — +5 yurish" (bir marta; reklama joyi `app.ads.showRewarded`).
+- `progress.js` — yulduzlar, ochilgan bosqichlar, buzilgan saqlangan ma'lumotni tozalash. `buildings.js` — har shahar binosi 8x8 koshin loyihasi, xaritada o'tilgan bosqichlarga qarab bezaladi.
+- UI: Ipak Yo'li xaritasi (aylantirish inersiya bilan, shahar lentasi, bino, qiziqarli fakt, yulduzlar, qulf, boss tuguni), bosqich ekrani (yurishlar medalyoni, maqsadlar va progress, g'alaba oynasida yulduzlar animatsiyasi, mag'lubiyatda xarita/qayta/+5). `i18n.js` — 4 til (avtomatik tanlash), shahar nomlari va faktlar.
+- `bot.js` — avtomatik o'yinchi (balansni tekshirish uchun). Bot sarguzasht bosqichlarining ~85% ini yutadi.
+- Testlar: 48/48.
+- Tuzatilgan xatolar: bot juda kuchsiz edi (~20 yurishda tiqilib qolardi) → evristika yaxshilandi (bo'shliqlar, notekislik, katta shakllarga joy); ochko maqsadlari juda oson, qator maqsadlari juda qattiq edi → yurishlar formulasi kalibrlandi; cheklangan yurishli bosqichlarda tiqilib qolish ko'p edi → qiyinlik < 0.6 bo'lsa qat'iy adolat.
