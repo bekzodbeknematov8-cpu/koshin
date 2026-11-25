@@ -1,6 +1,6 @@
 // 1-bosqich: chizish va sudrab qo'yish (sensor ekran + sichqoncha, Pointer Events).
 // Koshin dizayni 4-bosqichda qo'shiladi; hozir vaqtinchalik oddiy ranglar.
-import { createGame, tryPlace, hasAnyMove } from './logic/game.js';
+import { createGame, tryPlace } from './logic/game.js';
 import { canPlace, EMPTY } from './logic/board.js';
 import { shapeSize } from './logic/shapes.js';
 
@@ -11,6 +11,10 @@ const ctx = canvas.getContext('2d');
 let game = createGame();
 let layout = {};
 let drag = null; // { index, x, y, row, col, valid }
+let fx = []; // tozalangan kataklar animatsiyasi
+let popup = null; // combo yozuvi
+let best = 0;
+try { best = Number(localStorage.getItem('koshin.best') || 0); } catch {}
 
 function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -86,13 +90,47 @@ function draw() {
     for (const [dr, dc] of p.cells) drawTile(o.x + dc * cell, o.y + dr * cell, cell, p.color, 0.95);
   }
 
-  if (!hasAnyMove(game)) {
+  // ochko va streak
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f2f0e6';
+  ctx.font = 'bold 26px system-ui';
+  ctx.fillText(String(game.score), w / 2, Math.max(28, by - 14));
+  ctx.font = '14px system-ui';
+  ctx.fillStyle = '#e0a526';
+  ctx.textAlign = 'left';
+  ctx.fillText('★ ' + best, 12, 22);
+  if (game.streak > 1) { ctx.textAlign = 'right'; ctx.fillText('🔥×' + game.streak, w - 12, 22); }
+
+  const now = performance.now();
+  fx = fx.filter((f) => now - f.t < 450);
+  for (const f of fx) {
+    const k = (now - f.t) / 450;
+    const s = cell * (1 - k * 0.6);
+    const x = bx + f.c * cell + (cell - s) / 2, y = by + f.r * cell + (cell - s) / 2;
+    ctx.globalAlpha = 1 - k;
+    roundRect(x, y, s, s * 0.18, '#f5c542');
+    ctx.globalAlpha = 1;
+  }
+  if (popup && now - popup.t < 900) {
+    const k = (now - popup.t) / 900;
+    ctx.globalAlpha = 1 - k;
+    ctx.fillStyle = '#f5c542';
+    ctx.font = 'bold 30px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(popup.text, w / 2, by + boardPx / 2 - k * 40);
+    ctx.globalAlpha = 1;
+  }
+  if (fx.length || (popup && now - popup.t < 900)) requestDraw();
+
+  if (game.over) {
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = '#e0a526';
-    ctx.font = 'bold 28px system-ui';
     ctx.textAlign = 'center';
-    ctx.fillText('↻', w / 2, h / 2);
+    ctx.font = 'bold 40px system-ui';
+    ctx.fillText(String(game.score), w / 2, h / 2 - 20);
+    ctx.font = 'bold 48px system-ui';
+    ctx.fillText('↻', w / 2, h / 2 + 50);
   }
 }
 
@@ -112,7 +150,7 @@ function updateSnap() {
 }
 
 canvas.addEventListener('pointerdown', (e) => {
-  if (!hasAnyMove(game)) { game = createGame(); requestDraw(); return; }
+  if (game.over) { game = createGame(); requestDraw(); return; }
   const i = pickTray(e.clientX, e.clientY);
   if (i < 0) return;
   canvas.setPointerCapture(e.pointerId);
@@ -128,7 +166,18 @@ canvas.addEventListener('pointermove', (e) => {
 });
 function endDrag() {
   if (!drag) return;
-  if (drag.valid) tryPlace(game, drag.index, drag.row, drag.col);
+  if (drag.valid) {
+    const res = tryPlace(game, drag.index, drag.row, drag.col);
+    if (res) {
+      const t = performance.now();
+      for (const c of res.cleared) fx.push({ ...c, t });
+      if (res.lines > 1) popup = { text: 'COMBO ×' + res.lines, t };
+      else if (res.lines === 1 && res.streak > 1) popup = { text: '🔥 ' + res.streak, t };
+      if (res.perfect) popup = { text: '✦ PERFECT ✦', t };
+      if (res.lines && navigator.vibrate) navigator.vibrate(res.lines > 1 ? [20, 30, 20] : 15);
+      if (game.score > best) { best = game.score; try { localStorage.setItem('koshin.best', String(best)); } catch {} }
+    }
+  }
   drag = null;
   requestDraw();
 }
@@ -145,3 +194,4 @@ function requestDraw() {
 window.addEventListener('resize', () => { resize(); requestDraw(); });
 resize();
 requestDraw();
+window.__koshin = () => ({ score: game.score, moves: game.moves, over: game.over });
