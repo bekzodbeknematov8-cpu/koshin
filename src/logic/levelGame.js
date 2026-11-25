@@ -1,12 +1,37 @@
 // Sarguzasht bosqichi o'yini: cheklangan yurishlar, maqsadlar, natija (g'alaba/mag'lubiyat), yulduzlar.
 import { createGame, tryPlace, hasAnyMove, refillTray } from './game.js';
 import { starsFor } from './levels.js';
+import { createRng } from './shapes.js';
+import { buildingMask, buildingCells } from './buildings.js';
+import { placeObstacles, setTarget, createObsGrid, EVENT_KEYS } from './obstacles.js';
+
+// Olmosli bosqichlarda ba'zi shakllarda olmos paydo bo'ladi.
+function gemDecorator(chance) {
+  return (state) => {
+    const rng = state.gemRng || (state.gemRng = createRng((state.level ? state.level.seed : 1) ^ 0xa11ce));
+    for (const p of state.tray) {
+      if (!p) continue;
+      if (rng() < chance) p.gems = [Math.floor(rng() * p.cells.length)];
+    }
+  };
+}
 
 export function createLevelGame(level) {
-  const g = createGame(level.seed, { difficulty: level.difficulty, fairness: level.fairness, pool: level.pool });
+  const opts = { difficulty: level.shapeDifficulty ?? level.difficulty, fairness: level.fairness, pool: level.pool };
+  if (level.gemChance) opts.decorateTray = gemDecorator(level.gemChance);
+  const g = createGame(level.seed, opts);
   g.level = level;
   g.movesLeft = level.moves;
-  g.goals = level.goals.map((x) => ({ ...x, done: 0 }));
+  const ob = level.obstacles || {};
+  const hasObs = (ob.ice || 0) + (ob.chain || 0) + (ob.stone || 0) + (ob.gem || 0) > 0 || level.gemChance > 0;
+  if (level.build) setTarget(g, buildingMask(level.build));
+  if (hasObs || level.build) g.obs = createObsGrid(g.board.length);
+  if (hasObs) placeObstacles(g, ob, createRng(level.seed ^ 0x5eed));
+  g.goals = level.goals.map((x) => ({ ...x, done: 0, target: x.type === 'build' ? buildingCells(level.build).length : x.target }));
+  // to'siq maqsadi joylashganidan ko'p bo'lmasin
+  for (const x of g.goals) if (['ice', 'chain', 'stone'].includes(x.type)) x.target = Math.min(x.target, countType(g, x.type));
+  // shakllar to'siqlar qo'yilgandan keyin qayta tanlanadi (adolat generatori hozirgi maydonni ko'rsin)
+  if (hasObs || level.build) refillTray(g);
   g.status = 'playing';
   g.stars = 0;
   if (level.setup) level.setup(g);
@@ -31,6 +56,7 @@ export function levelPlace(g, trayIndex, row, col) {
   const res = tryPlace(g, trayIndex, row, col);
   if (!res) return false;
   g.movesLeft--;
+  if (res.events) for (const x of g.goals) if (EVENT_KEYS.includes(x.type)) x.done += res.events[x.type] || 0;
   if (g.onGoalProgress) g.onGoalProgress(g, res);
   updateStatus(g);
   return { ...res, over: g.over, status: g.status, stars: g.stars };
@@ -61,4 +87,10 @@ export function continueLevel(g, extraMoves = 5) {
     refillTray(g);
   }
   return true;
+}
+
+function countType(g, type) {
+  let k = 0;
+  if (g.obs) for (const row of g.obs) for (const o of row) if (o && o.t === type) k++;
+  return k;
 }

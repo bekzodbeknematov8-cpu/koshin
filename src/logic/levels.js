@@ -1,5 +1,6 @@
 // Sarguzasht: Ipak Yo'li shaharlari va qoida asosidagi bosqich generatori (qo'lda yozilmaydi).
 import { createRng } from './shapes.js';
+import { buildingCells, BUILDING_IDS } from './buildings.js';
 
 export const LEVELS_PER_CITY = 20;
 
@@ -15,6 +16,10 @@ export const CITIES = [
 ];
 
 export const ADVENTURE_LEVELS = CITIES.length * LEVELS_PER_CITY;
+
+// To'siq mexanikalari ochilish tartibi: Buxoro — muz, Samarqand — tosh, Shahrisabz — zanjir, Toshkent — olmos.
+export const MECHANICS = ['ice', 'stone', 'chain', 'gems'];
+const BUILDING_CELLS = Object.fromEntries(BUILDING_IDS.map((id) => [id, buildingCells(id).length]));
 
 // Shahardagi qiyinlik: asta oshadi, har 5-bosqich "nafas rostlash" (biroz oson), boss biroz qiyin.
 export function levelDifficulty(index) {
@@ -49,34 +54,80 @@ export function generateLevel(index) {
   const difficulty = levelDifficulty(index);
   const tutorial = index < 3;
   // Yurishlar cheklangan rejimda tiqilib qolish adolatsiz tuyuladi — asosan qat'iy adolat.
-  const fairness = difficulty < 0.6 || index < 10 ? 'strict' : 'normal';
+  const fairness = 'strict';
   const pool = tutorial ? TUTORIAL_POOL : undefined;
 
-  // Maqsad turi navbat bilan tanlanadi (qoida asosida).
-  const goals = [];
   const progress = city ? num / LEVELS_PER_CITY : 1;
-  const tier = city ? cityIdx : CITIES.length + Math.floor(num / 20);
-  const kind = boss ? 'both' : ['score', 'lines', 'score', 'lines', 'both'][Math.floor(rng() * 5)];
-  const lineTarget = Math.round(3 + tier * 1.2 + progress * 4 + rng() * 2);
-  const scoreTarget = Math.round((250 + tier * 180 + progress * 450 + rng() * 150) / 50) * 50;
+  const tier = city ? cityIdx : CITIES.length + Math.min(10, Math.floor(num / 20));
+  const goals = [];
+  const obstacles = { ice: 0, chain: 0, stone: 0, gem: 0 };
+  let build = null, gemChance = 0;
+  const eternalBoss = !city && num % LEVELS_PER_CITY === 0;
+
+  // Shu bosqichda mavjud mexanikalar (shaharlar bo'ylab asta ochiladi).
+  const available = MECHANICS.filter((m, i) => tier >= i + 1);
+  const mech = city ? city.mechanic : 'master';
+  let primary = null;
+  if (['ice', 'stone', 'chain', 'gems'].includes(mech)) primary = mech;
+  else if (available.length) primary = available[Math.floor(rng() * available.length)];
+
+  const lineTarget = Math.round(3 + Math.min(tier, 9) * 1.2 + progress * 4 + rng() * 2);
+  const scoreTarget = Math.round((250 + Math.min(tier, 9) * 180 + progress * 450 + rng() * 150) / 50) * 50;
+  const classic = (kind) => {
+    if (kind === 'score' || kind === 'both') goals.push({ type: 'score', target: kind === 'both' ? Math.round(scoreTarget * 0.8 / 50) * 50 : scoreTarget });
+    if (kind === 'lines' || kind === 'both') goals.push({ type: 'lines', target: kind === 'both' ? Math.max(3, Math.round(lineTarget * 0.8)) : lineTarget });
+  };
+  const obstacleGoal = (type, extra = 0) => {
+    const cnt = Math.max(2, Math.min(8, 2 + Math.floor(num / 4) + Math.floor(Math.min(tier, 9) / 3) + extra));
+    if (type === 'gems') {
+      obstacles.gem += Math.max(2, Math.round(cnt * 0.6));
+      gemChance = 0.22;
+      goals.push({ type: 'gems', target: obstacles.gem + 2 + Math.floor(num / 6) });
+    } else {
+      const k = type === 'ice' ? Math.max(2, Math.round(cnt * 0.6)) : cnt; // muz 2 marta tozalanadi — kamroq
+      obstacles[type] += k;
+      goals.push({ type, target: k });
+    }
+  };
+
   if (index === 0) goals.push({ type: 'lines', target: 2 });
   else if (index === 1) goals.push({ type: 'lines', target: 3 });
   else if (index === 2) goals.push({ type: 'score', target: 200 });
-  else {
-    if (kind === 'score' || kind === 'both') goals.push({ type: 'score', target: kind === 'both' ? Math.round(scoreTarget * 0.8 / 50) * 50 : scoreTarget });
-    if (kind === 'lines' || kind === 'both') goals.push({ type: 'lines', target: kind === 'both' ? Math.max(3, Math.round(lineTarget * 0.8)) : lineTarget });
+  else if (boss || eternalBoss) {
+    // Boss: shaharning mashhur binosini koshinlar bilan qayta qurish
+    build = city ? city.building : CITIES[Math.floor(rng() * CITIES.length)].building;
+    goals.push({ type: 'build', target: BUILDING_CELLS[build] });
+    if (primary && primary !== 'gems') obstacles[primary] += 2;
+  } else if (!primary || num <= 1 || rng() < 0.3) {
+    classic(['score', 'lines', 'score', 'lines', 'both'][Math.floor(rng() * 5)]);
+    // yengil bezak sifatida mavjud to'siqlar
+    if (primary && primary !== 'gems' && num > 1) obstacles[primary] += 1 + Math.floor(rng() * 2);
+  } else {
+    obstacleGoal(primary);
+    // aralash shaharlarda ikkinchi mexanika
+    if ((mech === 'mixed' || mech === 'master') && available.length > 1 && rng() < 0.6) {
+      const other = available.filter((m) => m !== primary);
+      obstacleGoal(other[Math.floor(rng() * other.length)], -2);
+    }
   }
 
   // Yurishlar: maqsadga yetarli + zaxira; qiyinlik oshgan sari zaxira kamayadi.
-  const need = goals.reduce((m, g) => Math.max(m, g.type === 'lines' ? g.target * 2.8 : g.target / 45), 0);
+  const buildCells = build ? BUILDING_CELLS[build] : 0;
+  const per = { lines: 2.8, score: 1 / 45, ice: 8, chain: 4, stone: 3.2, gems: 3.3, build: 0.5 };
+  const needs = goals.map((g) => (g.type === 'build' ? buildCells : g.target) * per[g.type]);
+  // bir nechta maqsad bir-biriga yordam beradi: eng kattasi yoki yig'indining 60% i
+  const need = Math.max(...needs, 0.6 * needs.reduce((a, b) => a + b, 0));
   const slack = 1.55 - difficulty * 0.35;
   const moves = Math.max(8, Math.round(need * slack + 4));
 
+  // to'siqlar o'zi qiyinlik qo'shadi — shakllar biroz yengilroq bo'ladi
+  const obsTotal = obstacles.ice + obstacles.chain + obstacles.stone + obstacles.gem;
+  const shapeDifficulty = obsTotal > 0 || build ? difficulty * 0.75 : difficulty;
   return {
-    index, num, boss, city: city ? city.id : 'eternal', cityIdx,
+    index, num, boss: boss || eternalBoss, shapeDifficulty, city: city ? city.id : 'eternal', cityIdx,
     difficulty, fairness, pool, goals, moves,
     seed: (0x9e37 * (index + 1)) >>> 0,
-    obstacles: [], // 6-bosqichda to'ldiriladi
+    obstacles, build, gemChance,
   };
 }
 

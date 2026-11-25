@@ -5,10 +5,10 @@ import { EMPTY } from './board.js';
 export function findFullLines(board) {
   const n = board.length, m = board[0].length;
   const rows = [], cols = [];
-  for (let r = 0; r < n; r++) if (board[r].every((v) => v !== EMPTY)) rows.push(r);
+  for (let r = 0; r < n; r++) if (board[r].every((v) => v >= 0)) rows.push(r);
   for (let c = 0; c < m; c++) {
     let full = true;
-    for (let r = 0; r < n; r++) if (board[r][c] === EMPTY) { full = false; break; }
+    for (let r = 0; r < n; r++) if (board[r][c] < 0) { full = false; break; }
     if (full) cols.push(c);
   }
   return { rows, cols };
@@ -52,7 +52,7 @@ export function streakMultiplier(streak) {
 export const PERFECT_BONUS = 300;
 
 export function isBoardEmpty(board) {
-  return board.every((l) => l.every((v) => v === EMPTY));
+  return board.every((l) => l.every((v) => v < 0));
 }
 
 // Bitta yurish natijasi bo'yicha ochko va streak holatini hisoblaydi.

@@ -10,7 +10,7 @@ Keyingi bosqich: **6** (to'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy
 - [x] 3. Shakl generatori va adolatlilik qoidasi — 2026-11-25
 - [x] 4. Koshin dizayni: plitkalar, fon, ranglar, animatsiyalar — 2026-11-25
 - [x] 5. Sarguzasht: bosqich generatori, maqsadlar, yulduzlar, Ipak Yo'li xaritasi — 2026-11-25
-- [ ] 6. To'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy yo'l"
+- [ ] 6. To'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy yo'l" — qisman (mantiq + testlar tayyor, to'siqlarni chizish qolgan)
 - [ ] 7. Kuchaytirgichlar va tanga tizimi
 - [ ] 8. Kunlik Naqsh va ulashish; Cheksiz rejim
 - [ ] 9. Topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, sozlamalar, 4 til

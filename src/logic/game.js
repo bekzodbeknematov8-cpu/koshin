@@ -3,6 +3,7 @@ import { createBoard, placePiece, canPlaceAnywhere, BOARD_SIZE } from './board.j
 import { createRng } from './shapes.js';
 import { generateTray } from './generator.js';
 import { clearLines, applyMoveScore, isBoardEmpty } from './score.js';
+import { applyPlacement, clearWithObstacles } from './obstacles.js';
 
 export const TRAY_SIZE = 3;
 
@@ -22,6 +23,7 @@ export function refillTray(state) {
   if (o.generator) { state.tray = o.generator(state); return; }
   const difficulty = typeof o.difficulty === 'function' ? o.difficulty(state) : (o.difficulty ?? defaultDifficulty(state));
   state.tray = generateTray(state.board, state.rng, { difficulty, fairness: typeof o.fairness === 'function' ? o.fairness(state) : (o.fairness || defaultFairness(state)), pool: o.pool });
+  if (o.decorateTray) o.decorateTray(state);
 }
 
 // Dastlabki yurishlarda qat'iy adolat, keyin oddiy.
@@ -42,7 +44,15 @@ export function tryPlace(state, trayIndex, row, col) {
   if (!piece) return false;
   const placed = placePiece(state.board, piece.cells, row, col, piece.color);
   if (!placed) return false;
-  const { board, cleared, lines } = clearLines(placed);
+  const abs = piece.cells.map(([dr, dc]) => [row + dr, col + dc]);
+  let events = null, extra = {};
+  if (state.obs || state.target) {
+    events = applyPlacement(state, abs, piece);
+  }
+  const cl = state.obs ? clearWithObstacles(state, placed) : clearLines(placed);
+  const { board, cleared, lines } = cl;
+  if (cl.events) for (const k of Object.keys(cl.events)) events[k] = (events[k] || 0) + cl.events[k];
+  if (state.obs) extra = { cracked: cl.cracked, broken: cl.broken };
   state.board = board;
   state.tray[trayIndex] = null;
   state.moves++;
@@ -51,7 +61,7 @@ export function tryPlace(state, trayIndex, row, col) {
   const result = applyMoveScore(state, piece.cells.length, lines, lines > 0 && isBoardEmpty(board));
   if (state.tray.every((p) => p === null)) refillTray(state);
   state.over = !hasAnyMove(state);
-  return { ...result, cleared, placed: piece.cells.map(([dr, dc]) => [row + dr, col + dc]), over: state.over };
+  return { ...result, ...extra, events, cleared, placed: abs, over: state.over };
 }
 
 export function hasAnyMove(state) {

@@ -1,6 +1,7 @@
 // Maydon mantig'i — DOM/Canvas'dan mustaqil.
 export const BOARD_SIZE = 8;
 export const EMPTY = -1;
+export const STONE = -2; // tosh: joy band, lekin qatorni to'ldirmaydi
 
 export function createBoard(size = BOARD_SIZE) {
   return Array.from({ length: size }, () => Array(size).fill(EMPTY));

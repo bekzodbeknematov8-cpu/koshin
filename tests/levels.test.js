@@ -22,7 +22,8 @@ test('bosqich generatori deterministik va to\'g\'ri tuzilgan', () => {
     assert.ok(a.goals.length >= 1, 'maqsad bor ' + i);
     assert.ok(a.moves >= 8, 'yurishlar ' + i);
     for (const g of a.goals) assert.ok(g.target > 0);
-    assert.equal(a.boss, i < ADVENTURE_LEVELS && (i % LEVELS_PER_CITY) === LEVELS_PER_CITY - 1);
+    assert.equal(a.boss, (i % LEVELS_PER_CITY) === LEVELS_PER_CITY - 1, 'boss ' + i);
+    if (a.boss && i > 2) { assert.ok(a.build, 'boss binosi ' + i); assert.equal(a.goals[0].type, 'build'); }
   }
 });
 
