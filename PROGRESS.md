@@ -13,7 +13,7 @@ Keyingi bosqich: **9** (topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, s
 - [x] 6. To'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy yo'l" — 2026-11-25
 - [x] 7. Kuchaytirgichlar va tanga tizimi — 2026-11-25
 - [x] 8. Kunlik Naqsh va ulashish; Cheksiz rejim — 2026-11-25
-- [ ] 9. Topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, sozlamalar, 4 til
+- [ ] 9. Topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, sozlamalar, 4 til — qisman (mantiq, ovoz sintezi, 4 til matnlari tayyor; menyu/sozlamalar UI qolgan)
 - [ ] 10. Saqlash, PWA, internetsiz ishlash, tezlikni optimallashtirish
 - [ ] 11. Yakuniy umumiy test, GitHub Pages'ga joylash yo'riqnomasi
 
