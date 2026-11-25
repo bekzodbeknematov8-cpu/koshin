@@ -9,7 +9,7 @@ Keyingi bosqich: **5** (sarguzasht: bosqich generatori, maqsadlar, yulduzlar, Ip
 - [x] 2. Qator/ustun tozalash, ochko, combo, streak, o'yin tugashi — 2026-11-25
 - [x] 3. Shakl generatori va adolatlilik qoidasi — 2026-11-25
 - [x] 4. Koshin dizayni: plitkalar, fon, ranglar, animatsiyalar — 2026-11-25
-- [ ] 5. Sarguzasht: bosqich generatori, maqsadlar, yulduzlar, Ipak Yo'li xaritasi
+- [ ] 5. Sarguzasht: bosqich generatori, maqsadlar, yulduzlar, Ipak Yo'li xaritasi — qisman (mantiq tayyor, xarita UI qolgan)
 - [ ] 6. To'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy yo'l"
 - [ ] 7. Kuchaytirgichlar va tanga tizimi
 - [ ] 8. Kunlik Naqsh va ulashish; Cheksiz rejim
