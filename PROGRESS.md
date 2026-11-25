@@ -2,7 +2,7 @@
 
 Ishlayapti: 2026-11-25 05:28 UTC
 
-Keyingi bosqich: **6** (to'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy yo'l")
+Keyingi bosqich: **7** (kuchaytirgichlar va tanga tizimi)
 
 ## Bosqichlar holati
 - [x] 1. Loyiha tuzilmasi, 8x8 maydon, sudrab qo'yish — 2026-11-24
@@ -10,7 +10,7 @@ Keyingi bosqich: **6** (to'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy
 - [x] 3. Shakl generatori va adolatlilik qoidasi — 2026-11-25
 - [x] 4. Koshin dizayni: plitkalar, fon, ranglar, animatsiyalar — 2026-11-25
 - [x] 5. Sarguzasht: bosqich generatori, maqsadlar, yulduzlar, Ipak Yo'li xaritasi — 2026-11-25
-- [ ] 6. To'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy yo'l" — qisman (mantiq + testlar tayyor, to'siqlarni chizish qolgan)
+- [x] 6. To'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy yo'l" — 2026-11-25
 - [ ] 7. Kuchaytirgichlar va tanga tizimi
 - [ ] 8. Kunlik Naqsh va ulashish; Cheksiz rejim
 - [ ] 9. Topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, sozlamalar, 4 til
@@ -56,3 +56,11 @@ Keyingi bosqich: **6** (to'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy
 - `bot.js` — avtomatik o'yinchi (balansni tekshirish uchun). Bot sarguzasht bosqichlarining ~85% ini yutadi.
 - Testlar: 48/48.
 - Tuzatilgan xatolar: bot juda kuchsiz edi (~20 yurishda tiqilib qolardi) → evristika yaxshilandi (bo'shliqlar, notekislik, katta shakllarga joy); ochko maqsadlari juda oson, qator maqsadlari juda qattiq edi → yurishlar formulasi kalibrlandi; cheklangan yurishli bosqichlarda tiqilib qolish ko'p edi → qiyinlik < 0.6 bo'lsa qat'iy adolat.
+
+### 2026-11-25 — 6-bosqich
+- Qilindi: `obstacles.js` — muz (2 marta tozalash; muzlar qatorlarda guruhlanadi), tosh (joy band, qatorni to'ldirmaydi, faqat yonidagi katak tozalansa sinadi), zanjir (tozalashda uziladi, koshin qoladi), olmos (maydonda va ba'zi shakllarda; qatori tozalansa yig'iladi), qurilish nishoni.
+- Mexanikalar shaharlar bo'ylab ochiladi: Buxoro — muz, Samarqand — tosh, Shahrisabz — zanjir, Toshkent — olmos, Qo'qon — aralash, Termiz — hammasi. Har shaharning 20-bosqichi BOSS: shahar binosini (Kalta minor, Kalon, Registon, Oqsaroy, Ko'kaldosh, Xudoyorxon saroyi, Sulton Saodat — erkin 8x8 talqin) koshinlar bilan qayta qurish; xaritada bino o'tilgan bosqichlarga qarab bezaladi.
+- "Abadiy yo'l" (141+): generator cheksiz bosqich yaratadi, barcha to'siqlar aralash, har 20-sida boss, qiyinlik sekin va chegaralangan o'sadi.
+- Chizish: tosh, muz (yoriq holati bilan), zanjir+qulf, olmos, oltin nishon kataklari; zarrachalar (muz/tosh/zanjir sinishi), maqsad belgilari.
+- Testlar: 59/59.
+- Tuzatilgan xatolar: (1) toshning qo'shnisini tekshirishda qator chetidan "indeks to'qnashuvi" (r*8+c, c=-1) bo'lardi → chegara avval tekshiriladi, test qo'shildi; (2) bosqich boshidagi shakllar to'siqlar qo'yilishidan OLDIN tanlanardi → bot 2 yurishda tiqilib qolardi → to'siqlardan keyin qayta tanlanadi; (3) to'siqlar juda ko'p edi (20 katak) → chegaralandi; (4) to'siqli bosqichlarda katta shakllar ko'p edi → shakl qiyinligi ×0.75 va barcha sarguzasht bosqichlarida qat'iy adolat; muz/zanjir/tosh uchun yurishlar bot yordamida kalibrlandi (~75% bosqichni bot yutadi).

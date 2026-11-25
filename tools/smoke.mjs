@@ -30,6 +30,12 @@ const lvl = await page.evaluate(() => {
 });
 if (lvl && !lvl.status) throw new Error('bosqich ochilmadi');
 if (process.env.SHOTS) { await page.waitForTimeout(300); await page.screenshot({ path: process.env.SHOTS + '/level.png' }); }
+// Ixtiyoriy: LEVELS=25,45 — shu bosqichlarning skrinshotlari (SHOTS papkasiga)
+for (const idx of (process.env.LEVELS || '').split(',').filter(Boolean)) {
+  await page.evaluate((i) => window.__open.level(Number(i)), idx);
+  await page.waitForTimeout(250);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/level-${idx}.png` });
+}
 await page.evaluate(() => window.__open && window.__open.endless());
 await page.waitForTimeout(200);
 // Pastdagi har bir shaklni maydon markaziga sudrab ko'ramiz

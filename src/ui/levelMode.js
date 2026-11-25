@@ -4,6 +4,7 @@ import { generateLevel, ADVENTURE_LEVELS } from '../logic/levels.js';
 import { createLevelGame, levelPlace, goalValue, continueLevel } from '../logic/levelGame.js';
 import { UI, FONT } from '../render/palette.js';
 import { t } from '../i18n.js';
+import { drawObstacleIcon } from '../render/obstacles.js';
 import { drawRoundButton, drawStar, drawIcon, hit, panel } from './widgets.js';
 import { easeOutBack, easeOutCubic, clamp01 } from '../fx/ease.js';
 
@@ -16,8 +17,7 @@ export function goalIcon(ctx, type, x, y, s) {
       for (let i = 0; i < 4; i++) ctx.fillRect(x - s + i * s * 0.52, y - s * 0.3, s * 0.42, s * 0.6);
       break;
     default:
-      if (goalIcon.extra && goalIcon.extra[type]) goalIcon.extra[type](ctx, x, y, s);
-      else drawStar(ctx, x, y, s, false);
+      drawObstacleIcon(ctx, type, x, y, s * 1.1, goalIcon.dpr || 1);
   }
   ctx.restore();
 }
@@ -25,6 +25,7 @@ goalIcon.extra = {};
 
 export function createLevelScreen(app, index, { onExit, onWin, onNext, extraHooks = {} }) {
   const level = generateLevel(index);
+  goalIcon.dpr = app.dpr;
   let screen;
   const overButtons = (L, g) => {
     const cy = L.h * 0.62;

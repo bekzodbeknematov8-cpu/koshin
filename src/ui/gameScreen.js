@@ -1,7 +1,8 @@
 // O'yin ekrani: maydon, shakllar, sudrab qo'yish, effektlar.
 // Rejimlar (sarguzasht/kunlik/cheksiz) shu ekranni `hooks` orqali sozlaydi.
 import { createGame, tryPlace } from '../logic/game.js';
-import { canPlace, placePiece, EMPTY, BOARD_SIZE } from '../logic/board.js';
+import { canPlace, placePiece, EMPTY, STONE, BOARD_SIZE } from '../logic/board.js';
+import { stoneSprite, iceSprite, chainSprite, gemSprite, targetSprite } from '../render/obstacles.js';
 import { findFullLines } from '../logic/score.js';
 import { shapeSize } from '../logic/shapes.js';
 import { tileSprite, emptyCellSprite, rr } from '../render/tiles.js';
@@ -38,6 +39,13 @@ export function createGameScreen(app, hooks = {}) {
   const sprite = (color, s) => tileSprite(color, s * app.dpr);
   const drawTile = (x, y, s, color) => ctxDraw(sprite(color, s), x, y, s);
   function ctxDraw(img, x, y, s) { app.ctx.drawImage(img, x, y, s, s); }
+
+  function drawPiece(p, x, y, s) {
+    p.cells.forEach(([dr, dc], k) => {
+      drawTile(x + dc * s, y + dr * s, s, p.color);
+      if (p.gems && p.gems.includes(k)) app.ctx.drawImage(gemSprite(s * app.dpr), x + dc * s, y + dr * s, s, s);
+    });
+  }
 
   function slotOrigin(i, piece, s) {
     const { rows, cols } = shapeSize(piece.cells);
@@ -137,13 +145,22 @@ export function createGameScreen(app, hooks = {}) {
       for (let c = 0; c < N; c++) {
         const x = bx + c * cell, y = by + r * cell;
         ctx.drawImage(empty, x, y, cell, cell);
+        const tg = game.target && game.target[r][c];
+        if (tg) ctx.drawImage(targetSprite(cell * app.dpr, tg === 2), x, y, cell, cell);
         const v = game.board[r][c];
         if (v === EMPTY) continue;
+        if (v === STONE) { ctx.drawImage(stoneSprite(cell * app.dpr), x, y, cell, cell); continue; }
         const k = popMap.get(r * N + c);
         if (k !== undefined) {
           const s = cell * (0.75 + 0.25 * easeOutBack(k, 3));
           drawTile(x + (cell - s) / 2, y + (cell - s) / 2, s, v);
         } else drawTile(x, y, cell, v);
+        const o = game.obs && game.obs[r][c];
+        if (o) {
+          if (o.t === 'ice') ctx.drawImage(iceSprite(cell * app.dpr, o.hp), x, y, cell, cell);
+          else if (o.t === 'chain') ctx.drawImage(chainSprite(cell * app.dpr), x, y, cell, cell);
+          else if (o.t === 'gem') { const gs = cell * (0.9 + 0.06 * Math.sin(now / 300 + r + c)); ctx.drawImage(gemSprite(cell * app.dpr), x + (cell - gs) / 2, y + (cell - gs) / 2, gs, gs); }
+        }
         if (hooks.drawCellOverlay) hooks.drawCellOverlay(ctx, game, r, c, x, y, cell, now);
       }
     if (hooks.drawBoardOverlay) hooks.drawBoardOverlay(ctx, game, L, now);
@@ -180,7 +197,7 @@ export function createGameScreen(app, hooks = {}) {
       const o = slotOrigin(i, p, s);
       const fits = hooks.fits ? hooks.fits(game, p) : true;
       ctx.globalAlpha = fits ? 1 : 0.35;
-      for (const [dr, dc] of p.cells) drawTile(o.x + dc * s, o.y + dr * s, s, p.color);
+      drawPiece(p, o.x, o.y, s);
       ctx.globalAlpha = 1;
     });
     returning = returning.filter((r) => now - r.t < 180);
@@ -191,7 +208,7 @@ export function createGameScreen(app, hooks = {}) {
       const s = L.cell + (L.trayCell - L.cell) * k;
       const t = slotOrigin(r.index, p, L.trayCell);
       const x = r.x + (t.x - r.x) * k, y = r.y + (t.y - r.y) * k;
-      for (const [dr, dc] of p.cells) drawTile(x + dc * s, y + dr * s, s, p.color);
+      drawPiece(p, x, y, s);
     }
     if (drag) {
       const p = game.tray[drag.index];
@@ -200,7 +217,7 @@ export function createGameScreen(app, hooks = {}) {
       ctx.shadowColor = 'rgba(0,0,0,0.45)';
       ctx.shadowBlur = 14;
       ctx.shadowOffsetY = 8;
-      for (const [dr, dc] of p.cells) drawTile(o.x + dc * cell, o.y + dr * cell, cell, p.color);
+      drawPiece(p, o.x, o.y, cell);
       ctx.restore();
     }
 
@@ -272,6 +289,9 @@ export function createGameScreen(app, hooks = {}) {
       shrink.push({ ...c, t: now });
       burst(ps, L.bx + (c.c + 0.5) * L.cell, L.by + (c.r + 0.5) * L.cell, L.cell, res.lines > 1 ? 9 : 6);
     }
+    for (const c of res.cracked || []) burst(ps, L.bx + (c.c + 0.5) * L.cell, L.by + (c.r + 0.5) * L.cell, L.cell, 8, ['#e8f8ff', '#bfe9ff', '#ffffff']);
+    for (const c of res.broken || []) burst(ps, L.bx + (c.c + 0.5) * L.cell, L.by + (c.r + 0.5) * L.cell, L.cell, 10, c.stone ? ['#a49a8a', '#7d7466', '#cfc6b6'] : ['#d8dce4', '#9aa3b2', '#c9a23a']);
+    if (res.events && res.events.build) for (const [r, c] of res.placed) if (game.target && game.target[r] && game.target[r][c] === 2) burst(ps, L.bx + (c + 0.5) * L.cell, L.by + (r + 0.5) * L.cell, L.cell, 3);
     trimParticles(ps);
     const cx = L.bx + L.boardPx / 2, cy = L.by + L.boardPx / 2;
     if (res.perfect) texts.push({ text: '✦ ✦ ✦', x: cx, y: cy - 40, size: 46, t: now, dur: 1300, color: UI.turq });
