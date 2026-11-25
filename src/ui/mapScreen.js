@@ -7,9 +7,9 @@ import { backgroundCanvas } from '../render/background.js';
 import { tileSprite } from '../render/tiles.js';
 import { UI, FONT } from '../render/palette.js';
 import { t } from '../i18n.js';
-import { drawStar, drawRoundButton, wrapText, hit, drawIcon } from './widgets.js';
+import { drawStar, drawRoundButton, wrapText, hit, drawIcon, drawCoin } from './widgets.js';
 
-export function createMapScreen(app, { getProgress, onPlay, buttons = [] }) {
+export function createMapScreen(app, { getProgress, onPlay, buttons = [], wallet }) {
   let w = 0, h = 0, scroll = 0, vel = 0;
   let touch = null; // { y0, s0, moved, t, lastY, lastT }
   let initialized = false;
@@ -134,6 +134,12 @@ export function createMapScreen(app, { getProgress, onPlay, buttons = [] }) {
     drawStar(ctx, 26, 29, 12, true);
     ctx.fillStyle = UI.gold; ctx.font = `bold 18px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillText(String(totalStars(p)), 44, 30);
+    if (wallet) {
+      const sw = ctx.measureText(String(totalStars(p))).width;
+      drawCoin(ctx, 64 + sw, 29, 11);
+      ctx.fillStyle = UI.gold;
+      ctx.fillText(String(wallet().coins), 80 + sw, 30);
+    }
     buttons.forEach((b, k) => {
       const bx = w - 32 - k * 54;
       drawRoundButton(ctx, bx, 29, 21, b.icon, { badge: b.badge && b.badge() });

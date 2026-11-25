@@ -2,7 +2,7 @@
 
 Ishlayapti: 2026-11-25 05:28 UTC
 
-Keyingi bosqich: **7** (kuchaytirgichlar va tanga tizimi)
+Keyingi bosqich: **8** (Kunlik Naqsh va ulashish; Cheksiz rejim)
 
 ## Bosqichlar holati
 - [x] 1. Loyiha tuzilmasi, 8x8 maydon, sudrab qo'yish — 2026-11-24
@@ -11,7 +11,7 @@ Keyingi bosqich: **7** (kuchaytirgichlar va tanga tizimi)
 - [x] 4. Koshin dizayni: plitkalar, fon, ranglar, animatsiyalar — 2026-11-25
 - [x] 5. Sarguzasht: bosqich generatori, maqsadlar, yulduzlar, Ipak Yo'li xaritasi — 2026-11-25
 - [x] 6. To'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy yo'l" — 2026-11-25
-- [ ] 7. Kuchaytirgichlar va tanga tizimi
+- [x] 7. Kuchaytirgichlar va tanga tizimi — 2026-11-25
 - [ ] 8. Kunlik Naqsh va ulashish; Cheksiz rejim
 - [ ] 9. Topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, sozlamalar, 4 til
 - [ ] 10. Saqlash, PWA, internetsiz ishlash, tezlikni optimallashtirish
@@ -64,3 +64,11 @@ Keyingi bosqich: **7** (kuchaytirgichlar va tanga tizimi)
 - Chizish: tosh, muz (yoriq holati bilan), zanjir+qulf, olmos, oltin nishon kataklari; zarrachalar (muz/tosh/zanjir sinishi), maqsad belgilari.
 - Testlar: 59/59.
 - Tuzatilgan xatolar: (1) toshning qo'shnisini tekshirishda qator chetidan "indeks to'qnashuvi" (r*8+c, c=-1) bo'lardi → chegara avval tekshiriladi, test qo'shildi; (2) bosqich boshidagi shakllar to'siqlar qo'yilishidan OLDIN tanlanardi → bot 2 yurishda tiqilib qolardi → to'siqlardan keyin qayta tanlanadi; (3) to'siqlar juda ko'p edi (20 katak) → chegaralandi; (4) to'siqli bosqichlarda katta shakllar ko'p edi → shakl qiyinligi ×0.75 va barcha sarguzasht bosqichlarida qat'iy adolat; muz/zanjir/tosh uchun yurishlar bot yordamida kalibrlandi (~75% bosqichni bot yutadi).
+
+### 2026-11-25 — 7-bosqich
+- Qilindi: `powerups.js` — Bomba (3x3), Bolg'a (1 katak, toshni ham sindiradi), Aylantirish (90°, olmos o'z katagida qoladi), Almashtirish (boshqa, joylashadigan shakl). Hamyon: tangalar + zaxira, narxlar (40–120), zaxira tugasa tanga bilan avtomatik sotib olinadi, buzilgan saqlangan ma'lumot tozalanadi.
+- Tanga topish: bosqich g'alabasi 10 + 5×yulduz (+50 boss), qayta o'tishda yarmi; Cheksiz rejimda ochko/100.
+- Bosqichda kuchaytirgich yurish sarflamaydi, to'siq maqsadlarini hisoblaydi va g'alabani tekshiradi; tiqilib qolgan o'yinni qutqarishi mumkin.
+- UI: pastda 4 tugma (belgi + soni yoki narxi), nishonga olish rejimi (bomba uchun 3x3 ko'rsatma), tanga yetmasa tugma silkinadi; tangalar o'yin va xarita ekranida; g'alaba oynasida "+N tanga". Ipak Yo'li tangasi belgisi (to'rtburchak teshikli).
+- Joylashuv: maydon + shakllar + tugmalar paneli kichik ekranlarga (iPhone SE) ham sig'adi.
+- Testlar: 68/68; tutun testi bolg'ani brauzerda bosib tekshiradi.

@@ -3,6 +3,7 @@ import { createGameScreen } from './ui/gameScreen.js';
 import { createMapScreen } from './ui/mapScreen.js';
 import { createLevelScreen } from './ui/levelMode.js';
 import { createProgress, recordResult, sanitizeProgress } from './logic/progress.js';
+import { sanitizeWallet, addCoins, levelReward, endlessReward } from './logic/powerups.js';
 import { pickLanguage, setLanguage } from './i18n.js';
 import { drawRoundButton, hit } from './ui/widgets.js';
 
@@ -87,6 +88,9 @@ const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } cat
 setLanguage(pickLanguage(navigator.languages || [navigator.language]));
 let progress = sanitizeProgress(load('koshin.progress', createProgress()));
 let best = Number(load('koshin.best', 0)) || 0;
+const wallet = sanitizeWallet(load('koshin.wallet', null));
+const saveWallet = () => save('koshin.wallet', wallet);
+const walletHooks = { wallet: () => wallet, onWallet: saveWallet };
 
 resize();
 
@@ -98,8 +102,16 @@ function openMap(focusIndex) {
 function openLevel(index) {
   app.setScene(createLevelScreen(app, index, {
     onExit: () => openMap(index),
-    onWin: (i, stars) => { recordResult(progress, i, stars); save('koshin.progress', progress); },
+    onWin: (i, stars, g) => {
+      const first = !progress.stars[i];
+      recordResult(progress, i, stars); save('koshin.progress', progress);
+      // tanga: birinchi o'tishda to'liq, qayta o'tishda yarmi
+      const coins = Math.round(levelReward(stars, g.level.boss) * (first ? 1 : 0.5));
+      addCoins(wallet, coins); saveWallet();
+      g.coinsEarned = coins;
+    },
     onNext: (i) => openLevel(i),
+    extraHooks: walletHooks,
   }));
 }
 
@@ -107,7 +119,9 @@ function openEndless() {
   const screen = createGameScreen(app, {
     best: () => best,
     bestX: 60,
+    ...walletHooks,
     onMove(game) { if (game.score > best) { best = game.score; save('koshin.best', best); } },
+    onOver(game) { addCoins(wallet, endlessReward(game.score)); saveWallet(); },
     pointerDown(x, y) { if (hit(x, y, 30, 30, 24)) { openMap(); return true; } return false; },
     drawHUD(c) { drawRoundButton(c, 30, 30, 20, 'back', { fill: 'rgba(240,192,74,0.9)' }); },
   });
@@ -118,6 +132,7 @@ const map = createMapScreen(app, {
   getProgress: () => progress,
   onPlay: openLevel,
   buttons: [{ icon: 'infinity', onTap: openEndless }],
+  wallet: () => wallet,
 });
 openMap();
 

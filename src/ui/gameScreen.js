@@ -10,6 +10,8 @@ import { backgroundCanvas } from '../render/background.js';
 import { UI, FONT } from '../render/palette.js';
 import { createParticles, burst, stepParticles, trimParticles } from '../fx/particles.js';
 import { easeOutBack, easeOutCubic, approach, clamp01 } from '../fx/ease.js';
+import { drawCoin, drawRoundButton, hit } from './widgets.js';
+import { POWERUPS, BOARD_TARGET, canUse, consume, applyPowerup, PRICES } from '../logic/powerups.js';
 
 export function createGameScreen(app, hooks = {}) {
   const N = BOARD_SIZE;
@@ -28,12 +30,16 @@ export function createGameScreen(app, hooks = {}) {
 
   function layout(w, h) {
     const top = hooks.hudHeight ? hooks.hudHeight : 86;
-    const boardPx = Math.min(w - 28, (h - top) * 0.62, 540);
+    const barH = hooks.wallet ? 70 : 0;
+    const avail = h - top - barH - 12;
+    const boardPx = Math.min(w - 28, avail / 1.45, 540);
     const cell = boardPx / N;
     const bx = (w - boardPx) / 2;
-    const by = top + Math.max(8, ((h - top) - boardPx - cell * 3.6) * 0.35);
+    const by = top + Math.max(8, (avail - boardPx * 1.45) * 0.35);
     const trayY = by + boardPx + cell * 0.55;
-    L = { w, h, cell, bx, by, boardPx, trayY, trayH: cell * 3, slotW: Math.min(w, boardPx + 40) / 3, trayX: (w - Math.min(w, boardPx + 40)) / 2, trayCell: cell * 0.56 };
+    const trayH = cell * 3;
+    L = { w, h, cell, bx, by, boardPx, trayY, trayH, slotW: Math.min(w, boardPx + 40) / 3, trayX: (w - Math.min(w, boardPx + 40)) / 2, trayCell: cell * 0.56,
+      barY: trayY + trayH + barH / 2, barH };
   }
 
   const sprite = (color, s) => tileSprite(color, s * app.dpr);
@@ -45,6 +51,56 @@ export function createGameScreen(app, hooks = {}) {
       drawTile(x + dc * s, y + dr * s, s, p.color);
       if (p.gems && p.gems.includes(k)) app.ctx.drawImage(gemSprite(s * app.dpr), x + dc * s, y + dr * s, s, s);
     });
+  }
+
+  let armed = null, aim = null, denied = 0;
+  function barButtons() {
+    const gap = Math.min(76, (L.w - 40) / 4);
+    return POWERUPS.map((id, k) => ({ id, x: L.w / 2 + (k - 1.5) * gap, y: L.barY, r: 24 }));
+  }
+  function drawBar(ctx, now) {
+    const wal = hooks.wallet();
+    for (const b of barButtons()) {
+      const n = wal.inv[b.id] || 0;
+      const usable = canUse(wal, b.id) && !game.over;
+      const on = armed === b.id;
+      ctx.save();
+      ctx.globalAlpha = usable ? 1 : 0.4;
+      if (on) { ctx.fillStyle = 'rgba(255,120,60,0.35)'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r + 7 + 2 * Math.sin(now / 120), 0, Math.PI * 2); ctx.fill(); }
+      const shakeX = denied && now - denied < 300 && armedDenied === b.id ? Math.sin(now / 20) * 4 : 0;
+      drawRoundButton(ctx, b.x + shakeX, b.y, b.r, b.id, { fill: on ? '#ff9a5a' : '#2a4aa0', fg: '#fff2cf', badge: n > 0 ? n : null });
+      if (n <= 0) {
+        // narxi
+        ctx.font = `bold 11px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(8,12,36,0.85)';
+        ctx.beginPath(); ctx.roundRect(b.x - 22, b.y + b.r - 6, 44, 16, 8); ctx.fill();
+        drawCoin(ctx, b.x - 12, b.y + b.r + 2, 5);
+        ctx.fillStyle = UI.gold; ctx.fillText(String(PRICES[b.id]), b.x + 5, b.y + b.r + 2.5);
+      }
+      ctx.restore();
+    }
+  }
+  let armedDenied = null;
+  function cellAt(x, y) {
+    const c = Math.floor((x - L.bx) / L.cell), r = Math.floor((y - L.by) / L.cell);
+    return r >= 0 && c >= 0 && r < N && c < N ? { r, c } : null;
+  }
+  function firePowerup(id, target) {
+    const wal = hooks.wallet();
+    if (!canUse(wal, id)) return false;
+    const apply = (s) => applyPowerup(s, id, target);
+    const res = hooks.powerup ? hooks.powerup(game, apply) : apply(game);
+    if (!res) return false;
+    consume(wal, id);
+    if (hooks.onWallet) hooks.onWallet(wal);
+    const now = performance.now();
+    screen.fxClear(res.cleared);
+    for (const c of res.broken || []) burst(ps, L.bx + (c.c + 0.5) * L.cell, L.by + (c.r + 0.5) * L.cell, L.cell, 10, c.stone ? ['#a49a8a', '#7d7466', '#cfc6b6'] : ['#d8dce4', '#9aa3b2', '#c9a23a']);
+    if (id === 'bomb') { shake = 0.6; app.vibrate([25, 20, 25]); } else app.vibrate(15);
+    app.sound && app.sound(id);
+    if (hooks.onMove) hooks.onMove(game, { ...res, lines: 0, powerup: id });
+    if (game.over) overAt = now + 250;
+    return true;
   }
 
   function slotOrigin(i, piece, s) {
@@ -109,17 +165,32 @@ export function createGameScreen(app, hooks = {}) {
       drawCrown(ctx, hooks.bestX || 16, 18, 16);
       ctx.fillText(String(Math.max(best, game.score)), (hooks.bestX || 16) + 22, 32);
     }
-    // streak alangasi
+    // streak alangasi (ochko yonida)
     if (game.streak > 1) {
       const pulse = 1 + 0.08 * Math.sin(now / 120);
+      ctx.font = `bold 34px ${FONT}`;
+      const sx = w / 2 + ctx.measureText(String(Math.round(shownScore))).width / 2 + 22;
+      const sy = L.by - Math.max(18, L.cell * 0.5) - 12;
       ctx.save();
-      ctx.translate(w - 40, 26);
+      ctx.translate(sx, sy);
       ctx.scale(pulse, pulse);
-      drawFlame(ctx, 0, 0, 14);
+      drawFlame(ctx, 0, 0, 12);
       ctx.restore();
-      ctx.textAlign = 'right';
+      ctx.textAlign = 'left';
+      ctx.font = `bold 16px ${FONT}`;
       ctx.fillStyle = UI.gold;
-      ctx.fillText('×' + game.streak, w - 58, 32);
+      ctx.fillText('×' + game.streak, sx + 12, sy + 6);
+    }
+    // tangalar
+    if (hooks.wallet) {
+      const wal = hooks.wallet();
+      ctx.font = `bold 16px ${FONT}`;
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = UI.gold;
+      ctx.fillText(String(wal.coins), w - 14, 30);
+      const tw = ctx.measureText(String(wal.coins)).width;
+      drawCoin(ctx, w - 26 - tw, 30, 10);
+      ctx.textBaseline = 'alphabetic';
     }
     if (hooks.drawHUD) hooks.drawHUD(ctx, L, game, now);
   }
@@ -164,6 +235,19 @@ export function createGameScreen(app, hooks = {}) {
         if (hooks.drawCellOverlay) hooks.drawCellOverlay(ctx, game, r, c, x, y, cell, now);
       }
     if (hooks.drawBoardOverlay) hooks.drawBoardOverlay(ctx, game, L, now);
+    if (armed && BOARD_TARGET[armed]) {
+      ctx.save();
+      ctx.strokeStyle = `rgba(255,120,60,${0.6 + 0.3 * Math.sin(now / 150)})`;
+      ctx.lineWidth = 4;
+      ctx.strokeRect(bx - 2, by - 2, L.boardPx + 4, L.boardPx + 4);
+      if (aim) {
+        const k = armed === 'bomb' ? 1 : 0;
+        ctx.fillStyle = 'rgba(255,120,60,0.35)';
+        ctx.fillRect(bx + Math.max(0, aim.c - k) * cell, by + Math.max(0, aim.r - k) * cell,
+          (Math.min(N - 1, aim.c + k) - Math.max(0, aim.c - k) + 1) * cell, (Math.min(N - 1, aim.r + k) - Math.max(0, aim.r - k) + 1) * cell);
+      }
+      ctx.restore();
+    }
 
     // ko'rsatma: qayerga tushadi + qaysi qatorlar tozalanadi
     if (drag && drag.valid) {
@@ -220,6 +304,8 @@ export function createGameScreen(app, hooks = {}) {
       drawPiece(p, o.x, o.y, cell);
       ctx.restore();
     }
+
+    if (hooks.wallet) drawBar(ctx, now);
 
     // oltin chang
     stepParticles(ps, dt);
@@ -328,7 +414,7 @@ export function createGameScreen(app, hooks = {}) {
     layout,
     draw,
     active(now) {
-      return !!drag || returning.length || pops.length || shrink.length || texts.length || ps.list.length || shake > 0 ||
+      return !!drag || !!armed || (now - denied < 350) || returning.length || pops.length || shrink.length || texts.length || ps.list.length || shake > 0 ||
         Math.round(shownScore) !== game.score || (game.over && now - overAt < 1500) || (game.streak > 1) || (hooks.animating && hooks.animating(now));
     },
     pointerDown(x, y) {
@@ -338,6 +424,27 @@ export function createGameScreen(app, hooks = {}) {
         return;
       }
       if (hooks.pointerDown && hooks.pointerDown(x, y, L, game)) return;
+      if (hooks.wallet) {
+        const b = barButtons().find((bb) => hit(x, y, bb.x, bb.y, bb.r + 6));
+        if (b) {
+          if (armed === b.id) { armed = null; aim = null; return; }
+          if (!canUse(hooks.wallet(), b.id)) { denied = performance.now(); armedDenied = b.id; app.vibrate(30); return; }
+          armed = b.id; aim = null;
+          app.sound && app.sound('pick');
+          return;
+        }
+        if (armed) {
+          if (BOARD_TARGET[armed]) {
+            const cl = cellAt(x, y);
+            if (cl) { aim = cl; return; }
+          } else {
+            const ti = pickTray(x, y);
+            if (ti >= 0) { if (firePowerup(armed, { index: ti })) armed = null; return; }
+          }
+          armed = null; aim = null;
+          return;
+        }
+      }
       const i = pickTray(x, y);
       if (i < 0) return;
       drag = { index: i, x, y };
@@ -345,11 +452,18 @@ export function createGameScreen(app, hooks = {}) {
       app.sound && app.sound('pick');
     },
     pointerMove(x, y) {
+      if (armed && aim) { const cl = cellAt(x, y); if (cl) aim = cl; return; }
       if (!drag) return;
       drag.x = x; drag.y = y;
       updateSnap();
     },
-    pointerUp() {
+    pointerUp(x, y) {
+      if (armed && aim) {
+        const cl = cellAt(x, y) || aim;
+        if (firePowerup(armed, cl)) armed = null;
+        aim = null;
+        return;
+      }
       if (!drag) return;
       const d = drag;
       drag = null;

@@ -1,11 +1,11 @@
 // Sarguzasht bosqichi ekrani: o'yin ekrani + yurishlar, maqsadlar, g'alaba/mag'lubiyat oynasi.
 import { createGameScreen } from './gameScreen.js';
 import { generateLevel, ADVENTURE_LEVELS } from '../logic/levels.js';
-import { createLevelGame, levelPlace, goalValue, continueLevel } from '../logic/levelGame.js';
+import { createLevelGame, levelPlace, goalValue, continueLevel, levelPowerup } from '../logic/levelGame.js';
 import { UI, FONT } from '../render/palette.js';
 import { t } from '../i18n.js';
 import { drawObstacleIcon } from '../render/obstacles.js';
-import { drawRoundButton, drawStar, drawIcon, hit, panel } from './widgets.js';
+import { drawRoundButton, drawStar, drawIcon, hit, panel, drawCoin } from './widgets.js';
 import { easeOutBack, easeOutCubic, clamp01 } from '../fx/ease.js';
 
 export function goalIcon(ctx, type, x, y, s) {
@@ -38,6 +38,7 @@ export function createLevelScreen(app, index, { onExit, onWin, onNext, extraHook
   const hooks = {
     createGame: () => createLevelGame(level),
     place: (g, i, r, c) => levelPlace(g, i, r, c),
+    powerup: (g, apply) => levelPowerup(g, apply),
     hudHeight: 118,
     hideBest: true,
     ...extraHooks,
@@ -104,6 +105,12 @@ export function createLevelScreen(app, index, { onExit, onWin, onNext, extraHook
         }
         ctx.fillStyle = UI.text; ctx.font = `bold 40px ${FONT}`;
         ctx.fillText(String(g.score), L.w / 2, py + 150);
+        if (g.coinsEarned) {
+          drawCoin(ctx, L.w / 2 - 24, py + 205, 12);
+          ctx.fillStyle = UI.gold; ctx.font = `bold 22px ${FONT}`; ctx.textAlign = 'left';
+          ctx.fillText('+' + g.coinsEarned, L.w / 2 - 6, py + 206);
+          ctx.textAlign = 'center';
+        }
       } else {
         ctx.fillStyle = UI.text; ctx.font = `bold 40px ${FONT}`;
         ctx.fillText(String(g.score), L.w / 2, py + 70);

@@ -51,7 +51,21 @@ if (L && L.slotW) {
     await page.waitForTimeout(150);
   }
 }
-await page.waitForTimeout(500);
+await page.waitForTimeout(300);
+// Kuchaytirgich: bolg'a bilan katakni sindirish
+{
+  await page.evaluate(() => { const s = window.__app.scene; s.restart(); s.game.board[2][2] = 1; window.__app.requestFrame(); });
+  const L2 = await page.evaluate(() => window.__app.scene.layoutInfo);
+  if (L2.barH) {
+    const gap = Math.min(76, (L2.w - 40) / 4);
+    await page.mouse.click(L2.w / 2 + (1 - 1.5) * gap, L2.barY);
+    await page.mouse.click(L2.bx + 2.5 * L2.cell, L2.by + 2.5 * L2.cell);
+    const v = await page.evaluate(() => window.__app.scene.game.board[2][2]);
+    if (v !== -1) throw new Error('bolg\'a ishlamadi: ' + v);
+    console.log('bolg\'a OK');
+  }
+}
+await page.waitForTimeout(200);
 if (process.argv[2]) await page.screenshot({ path: process.argv[2] });
 // Ixtiyoriy: SHOTS=papka — tozalash va o'yin tugashi holatlarining skrinshotlari
 if (process.env.SHOTS && L && L.slotW) {

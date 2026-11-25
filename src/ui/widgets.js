@@ -102,9 +102,57 @@ export function drawIcon(ctx, icon, x, y, s, color = '#1b2457') {
       for (const [px, py] of pts) { ctx.beginPath(); ctx.arc(px, py, s * 0.26, 0, Math.PI * 2); ctx.fill(); }
       break;
     }
+    case 'bomb': {
+      ctx.beginPath(); ctx.arc(x - s * 0.1, y + s * 0.15, s * 0.62, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(x + s * 0.1, y - s * 0.65, s * 0.32, s * 0.3);
+      ctx.lineWidth = s * 0.12;
+      ctx.beginPath(); ctx.moveTo(x + s * 0.3, y - s * 0.65); ctx.quadraticCurveTo(x + s * 0.5, y - s * 1.0, x + s * 0.8, y - s * 0.85); ctx.stroke();
+      ctx.fillStyle = '#ff9a2e';
+      starPath(ctx, x + s * 0.85, y - s * 0.88, 6, s * 0.25, s * 0.1, 0); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.beginPath(); ctx.arc(x - s * 0.32, y - s * 0.05, s * 0.14, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+    case 'hammer': {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(-Math.PI / 4);
+      ctx.fillRect(-s * 0.1, -s * 0.3, s * 0.2, s * 1.15);
+      ctx.fillRect(-s * 0.6, -s * 0.72, s * 1.2, s * 0.45);
+      ctx.restore();
+      break;
+    }
+    case 'rotate': {
+      ctx.lineWidth = s * 0.22;
+      ctx.beginPath(); ctx.arc(x, y, s * 0.62, Math.PI * 0.9, Math.PI * 2.25); ctx.stroke();
+      const a = Math.PI * 2.25, ax = x + Math.cos(a) * s * 0.62, ay = y + Math.sin(a) * s * 0.62;
+      ctx.beginPath(); ctx.moveTo(ax + s * 0.32, ay - s * 0.12); ctx.lineTo(ax - s * 0.05, ay + s * 0.38); ctx.lineTo(ax - s * 0.3, ay - s * 0.2); ctx.closePath(); ctx.fill();
+      break;
+    }
+    case 'swap': {
+      ctx.lineWidth = s * 0.2;
+      ctx.beginPath(); ctx.moveTo(x - s * 0.7, y - s * 0.3); ctx.lineTo(x + s * 0.5, y - s * 0.3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + s * 0.8, y - s * 0.3); ctx.lineTo(x + s * 0.4, y - s * 0.65); ctx.lineTo(x + s * 0.4, y + s * 0.05); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x + s * 0.7, y + s * 0.35); ctx.lineTo(x - s * 0.5, y + s * 0.35); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - s * 0.8, y + s * 0.35); ctx.lineTo(x - s * 0.4, y); ctx.lineTo(x - s * 0.4, y + s * 0.7); ctx.closePath(); ctx.fill();
+      break;
+    }
+    case 'coin': drawCoin(ctx, x, y, s); break;
     default:
       break;
   }
+  ctx.restore();
+}
+
+// Ipak Yo'li tangasi: dumaloq, o'rtasida to'rtburchak teshik.
+export function drawCoin(ctx, x, y, r) {
+  ctx.save();
+  const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+  g.addColorStop(0, '#ffe9a0'); g.addColorStop(1, '#c48a1a');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#8a5a0a'; ctx.lineWidth = Math.max(1, r * 0.12);
+  ctx.beginPath(); ctx.arc(x, y, r * 0.78, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = '#5a3a06';
+  ctx.fillRect(x - r * 0.25, y - r * 0.25, r * 0.5, r * 0.5);
   ctx.restore();
 }
 

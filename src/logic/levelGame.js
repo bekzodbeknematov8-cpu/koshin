@@ -94,3 +94,13 @@ function countType(g, type) {
   if (g.obs) for (const row of g.obs) for (const o of row) if (o && o.t === type) k++;
   return k;
 }
+
+// Kuchaytirgich bosqichda: yurish sarflanmaydi, maqsadlar hodisalar bilan yangilanadi.
+export function levelPowerup(g, apply) {
+  if (g.status !== 'playing') return null;
+  const res = apply(g);
+  if (!res) return null;
+  for (const x of g.goals) if (EVENT_KEYS.includes(x.type)) x.done += res.events[x.type] || 0;
+  updateStatus(g);
+  return { ...res, status: g.status, stars: g.stars, over: g.over };
+}
