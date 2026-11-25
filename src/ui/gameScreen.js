@@ -6,7 +6,6 @@ import { stoneSprite, iceSprite, chainSprite, gemSprite, targetSprite } from '..
 import { findFullLines } from '../logic/score.js';
 import { shapeSize } from '../logic/shapes.js';
 import { tileSprite, emptyCellSprite, rr } from '../render/tiles.js';
-import { backgroundCanvas } from '../render/background.js';
 import { UI, FONT } from '../render/palette.js';
 import { createParticles, burst, stepParticles, trimParticles } from '../fx/particles.js';
 import { easeOutBack, easeOutCubic, approach, clamp01 } from '../fx/ease.js';
@@ -126,6 +125,24 @@ export function createGameScreen(app, hooks = {}) {
     drag.preview = drag.valid ? findFullLines(placePiece(game.board, p.cells, drag.row, drag.col, p.color)) : null;
   }
 
+  let baseCache = null;
+  function boardBase() {
+    const key = `${L.w}x${L.h}@${app.dpr}`;
+    if (baseCache && baseCache.key === key) return baseCache;
+    const m = Math.max(8, L.cell * 0.22) + 22; // soya uchun zaxira
+    const x = L.bx - m, y = L.by - m, w = L.boardPx + m * 2, h = w;
+    const cv = document.createElement('canvas');
+    cv.width = Math.ceil(w * app.dpr); cv.height = Math.ceil(h * app.dpr);
+    const c = cv.getContext('2d');
+    c.scale(app.dpr, app.dpr);
+    c.translate(-x, -y);
+    drawFrame(c);
+    const empty = emptyCellSprite(L.cell * app.dpr);
+    for (let r = 0; r < N; r++) for (let cc = 0; cc < N; cc++) c.drawImage(empty, L.bx + cc * L.cell, L.by + r * L.cell, L.cell, L.cell);
+    baseCache = { key, cv, x, y, w, h };
+    return baseCache;
+  }
+
   function drawFrame(ctx) {
     const { bx, by, boardPx } = L;
     const m = Math.max(8, L.cell * 0.22);
@@ -199,7 +216,7 @@ export function createGameScreen(app, hooks = {}) {
   function draw(now, dt) {
     const ctx = app.ctx;
     const { w, h, cell, bx, by } = L;
-    ctx.drawImage(backgroundCanvas(w, h, app.dpr), 0, 0, w, h);
+    app.paintBg();
     shownScore = approach(shownScore, game.score, dt, 8);
 
     ctx.save();
@@ -208,15 +225,15 @@ export function createGameScreen(app, hooks = {}) {
       ctx.translate((Math.random() - 0.5) * k, (Math.random() - 0.5) * k);
       shake = Math.max(0, shake - dt * 2.5);
     }
-    drawFrame(ctx);
-    const empty = emptyCellSprite(cell * app.dpr);
+    // hoshiya + bo'sh kataklar bitta keshlangan rasm (har kadrda 64 ta rasm o'rniga 1 ta)
+    const base = boardBase();
+    ctx.drawImage(base.cv, base.x, base.y, base.w, base.h);
     const popMap = new Map();
     pops = pops.filter((p) => now - p.t < 260);
     for (const p of pops) popMap.set(p.r * N + p.c, (now - p.t) / 260);
     for (let r = 0; r < N; r++)
       for (let c = 0; c < N; c++) {
         const x = bx + c * cell, y = by + r * cell;
-        ctx.drawImage(empty, x, y, cell, cell);
         const tg = game.target && game.target[r][c];
         if (tg) ctx.drawImage(targetSprite(cell * app.dpr, tg === 2), x, y, cell, cell);
         const v = game.board[r][c];
@@ -298,12 +315,10 @@ export function createGameScreen(app, hooks = {}) {
     if (drag) {
       const p = game.tray[drag.index];
       const o = dragOrigin(p, drag.x, drag.y);
-      ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.45)';
-      ctx.shadowBlur = 14;
-      ctx.shadowOffsetY = 8;
+      // arzon soya (shadowBlur kuchsiz telefonlarda sekin)
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      for (const [dr, dc] of p.cells) ctx.fillRect(o.x + dc * cell + 4, o.y + dr * cell + 10, cell - 4, cell - 4);
       drawPiece(p, o.x, o.y, cell);
-      ctx.restore();
     }
 
     if (hooks.wallet) drawBar(ctx, now);
@@ -311,14 +326,13 @@ export function createGameScreen(app, hooks = {}) {
     // oltin chang
     stepParticles(ps, dt);
     for (const p of ps.list) {
-      const k = p.life / p.max;
-      ctx.globalAlpha = 1 - k;
+      // aylanuvchi romb (save/restore'siz — tezroq)
+      ctx.globalAlpha = 1 - p.life / p.max;
       ctx.fillStyle = p.color;
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.spin);
-      ctx.fillRect(-p.r, -p.r, p.r * 2, p.r * 2);
-      ctx.restore();
+      const cs = Math.cos(p.spin) * p.r * 1.3, sn = Math.sin(p.spin) * p.r * 1.3;
+      ctx.beginPath();
+      ctx.moveTo(p.x + cs, p.y + sn); ctx.lineTo(p.x - sn, p.y + cs); ctx.lineTo(p.x - cs, p.y - sn); ctx.lineTo(p.x + sn, p.y - cs);
+      ctx.fill();
     }
     ctx.globalAlpha = 1;
     ctx.restore();

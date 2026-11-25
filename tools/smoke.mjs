@@ -97,6 +97,35 @@ if (process.env.SHOTS && L && L.slotW) {
   await page.waitForTimeout(800);
   await page.screenshot({ path: dir + '/over.png' });
 }
+// Tezlik: og'ir holatda (to'la maydon + ko'p zarracha) bitta kadr chizish vaqti
+const perf = await page.evaluate(() => {
+  const s = window.__app.scene;
+  if (!s || !s.fxClear) return null;
+  s.restart();
+  const g = s.game;
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) if ((r + c) % 3) g.board[r][c] = (r * 3 + c) % 5;
+  const cells = []; for (let c = 0; c < 8; c++) for (let r = 0; r < 8; r += 2) cells.push({ r, c, color: 1 });
+  s.fxClear(cells); s.fxClear(cells);
+  const t0 = performance.now();
+  let now = t0;
+  for (let i = 0; i < 60; i++) { now += 16; s.draw(now, 1 / 60); }
+  return (performance.now() - t0) / 60;
+});
+if (perf !== null) console.log('kadr (o\'rtacha, ms):', perf.toFixed(2));
+// Internetsiz: service worker keshlagandan keyin tarmoqni o'chirib qayta yuklaymiz
+if (process.env.OFFLINE !== '0') {
+  const ready = await page.evaluate(() => 'serviceWorker' in navigator && Promise.race([navigator.serviceWorker.ready.then(() => true), new Promise((r) => setTimeout(() => r(false), 4000))]));
+  if (ready) {
+    await page.waitForTimeout(500);
+    await page.context().setOffline(true);
+    await page.reload();
+    await page.waitForTimeout(600);
+    const ok = await page.evaluate(() => !!window.__app && !!window.__app.scene);
+    await page.context().setOffline(false);
+    if (!ok) throw new Error('internetsiz ishlamadi');
+    console.log('internetsiz OK');
+  } else console.log('service worker tayyor bo\'lmadi (o\'tkazib yuborildi)');
+}
 const info = await page.evaluate(() => window.__koshin ? window.__koshin() : null);
 await browser.close(); server.close();
 console.log('info:', JSON.stringify(info));

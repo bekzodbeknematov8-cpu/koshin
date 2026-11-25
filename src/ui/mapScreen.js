@@ -3,7 +3,6 @@ import { CITIES, LEVELS_PER_CITY, ADVENTURE_LEVELS } from '../logic/levels.js';
 import { cityCompleted, isUnlocked, totalStars } from '../logic/progress.js';
 import { buildingCells, decoratedCount } from '../logic/buildings.js';
 import { nodeDistance, cityHeaderDistance, nodeX, screenY, scrollFor, clampScroll, nodeAt, visibleCount, CITY_HEADER } from './mapLayout.js';
-import { backgroundCanvas } from '../render/background.js';
 import { tileSprite } from '../render/tiles.js';
 import { UI, FONT } from '../render/palette.js';
 import { t } from '../i18n.js';
@@ -75,7 +74,7 @@ export function createMapScreen(app, { getProgress, onPlay, buttons = [], wallet
     const ctx = app.ctx;
     const p = getProgress();
     if (!touch && Math.abs(vel) > 5) { scroll = clampScroll(scroll + vel * dt, h, p.unlocked); vel *= Math.pow(0.04, dt); } else if (!touch) vel = 0;
-    ctx.drawImage(backgroundCanvas(w, h, app.dpr), 0, 0, w, h);
+    app.paintBg();
     ctx.fillStyle = 'rgba(6,10,30,0.35)'; ctx.fillRect(0, 0, w, h);
     const n = visibleCount(p.unlocked);
 

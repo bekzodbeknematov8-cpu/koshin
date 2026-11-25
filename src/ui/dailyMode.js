@@ -4,7 +4,6 @@ import {
   dayNumber, createDailyGame, dailyPlace, shareText, rollDay, canStart, startAttempt, grantAdAttempt,
   attemptsLeft, finishAttempt, DAILY_TRAYS, STREAK_REWARD_DAY,
 } from '../logic/daily.js';
-import { backgroundCanvas } from '../render/background.js';
 import { UI, FONT } from '../render/palette.js';
 import { drawRoundButton, hit, panel, drawCoin, drawIcon } from './widgets.js';
 import { easeOutCubic } from '../fx/ease.js';
@@ -70,7 +69,7 @@ export function createDailyHub(app, { getState, saveState, wallet, onWallet, onB
     draw(now) {
       const ctx = app.ctx;
       const s = getState();
-      ctx.drawImage(backgroundCanvas(w, h, app.dpr), 0, 0, w, h);
+      app.paintBg();
       const pw = Math.min(w - 32, 360), px = (w - pw) / 2, py = h * 0.14, ph = h * 0.48;
       panel(ctx, px, py, pw, ph);
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';

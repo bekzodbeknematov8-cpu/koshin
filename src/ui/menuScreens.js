@@ -1,5 +1,4 @@
 // Bosh menyu, sozlamalar, topshiriqlar, yutuqlar va kunlik sovg'a oynasi.
-import { backgroundCanvas } from '../render/background.js';
 import { tileSprite, star as starPath } from '../render/tiles.js';
 import { UI, FONT } from '../render/palette.js';
 import { t, tf, LANGS, LANG_NAMES, getLanguage } from '../i18n.js';
@@ -43,7 +42,7 @@ export function createMenu(app, opts) {
     showPopup(p) { popup = p; popT = performance.now(); app.requestFrame(); },
     draw(now) {
       const ctx = app.ctx;
-      ctx.drawImage(backgroundCanvas(w, h, app.dpr), 0, 0, w, h);
+      app.paintBg();
       // bezak: aylanayotgan koshinlar
       const s = Math.min(w, 420) / 9;
       for (let i = 0; i < 5; i++) {
@@ -97,7 +96,8 @@ export function createMenu(app, opts) {
 }
 
 // Sozlamalar: ovoz, musiqa, tebranish, til.
-export function createSettings(app, { settings, onChange, onBack }) {
+export function createSettings(app, { settings, onChange, onBack, onExport, onImport }) {
+  let note = null;
   let w = 0, h = 0;
   const rows = () => {
     const x = w / 2, y0 = h * 0.24;
@@ -112,9 +112,9 @@ export function createSettings(app, { settings, onChange, onBack }) {
     layout(W, H) { w = W; h = H; },
     draw() {
       const ctx = app.ctx;
-      ctx.drawImage(backgroundCanvas(w, h, app.dpr), 0, 0, w, h);
+      app.paintBg();
       const pw = Math.min(w - 32, 380);
-      panel(ctx, (w - pw) / 2, h * 0.24 - 60, pw, 420);
+      panel(ctx, (w - pw) / 2, h * 0.24 - 60, pw, onExport ? 520 : 420);
       backBtn(ctx);
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = UI.gold; ctx.font = `bold 22px ${FONT}`;
@@ -138,11 +138,25 @@ export function createSettings(app, { settings, onChange, onBack }) {
         ctx.fillStyle = sel ? '#1b2457' : UI.text; ctx.font = `bold 13px ${FONT}`;
         ctx.fillText(LANG_NAMES[b.l], b.x, b.y);
       }
+      // zaxira nusxa: boshqa telefonga ko'chirish
+      if (onExport) {
+        const y = h * 0.24 + 400;
+        drawRoundButton(ctx, w / 2 - 45, y, 22, 'share', { fill: '#2a4aa0', fg: '#fff2cf' });
+        drawRoundButton(ctx, w / 2 + 45, y, 22, 'list', { fill: '#2a4aa0', fg: '#fff2cf' });
+        if (note && performance.now() - note.t < 2000) { ctx.fillStyle = UI.turq; ctx.font = `bold 20px ${FONT}`; ctx.fillText(note.text, w / 2, y + 44); }
+      }
     },
+    active() { return !!note && performance.now() - note.t < 2000; },
     pointerDown(x, y) {
       if (hit(x, y, 30, 30, 24)) { onBack(); return; }
       for (const r of rows()) if (y > r.y - 30 && y < r.y + 30 && Math.abs(x - r.x) < 160) { settings[r.id] = !r.on; onChange(r.id); app.requestFrame(); return; }
       for (const b of langBtns()) if (Math.abs(x - b.x) < 40 && Math.abs(y - b.y) < 20) { settings.lang = b.l; onChange('lang'); app.requestFrame(); return; }
+      if (onExport) {
+        const by = h * 0.24 + 400;
+        const done = (ok) => { note = { text: ok ? '✓' : '✗', t: performance.now() }; app.requestFrame(); };
+        if (hit(x, y, w / 2 - 45, by, 26)) onExport().then(done);
+        else if (hit(x, y, w / 2 + 45, by, 26)) done(onImport());
+      }
     },
   };
 }
@@ -156,7 +170,7 @@ function createList(app, { titleKey, rows, drawRow, rowH = 86, onTapRow, onBack 
     layout(W, H) { w = W; h = H; },
     draw(now) {
       const ctx = app.ctx;
-      ctx.drawImage(backgroundCanvas(w, h, app.dpr), 0, 0, w, h);
+      app.paintBg();
       ctx.fillStyle = 'rgba(6,10,30,0.4)'; ctx.fillRect(0, 0, w, h);
       ctx.save();
       ctx.beginPath(); ctx.rect(0, top, w, h - top); ctx.clip();

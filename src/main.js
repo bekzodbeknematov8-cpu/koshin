@@ -1,11 +1,14 @@
 // Ilova qobig'i: canvas, sahnalar (ekranlar), kirish hodisalari, kadr sikli.
 import { createGameScreen } from './ui/gameScreen.js';
+import { backgroundCanvas } from './render/background.js';
+import { createGame } from './logic/game.js';
 import { createMapScreen } from './ui/mapScreen.js';
 import { createLevelScreen } from './ui/levelMode.js';
 import { createProgress, recordResult, sanitizeProgress } from './logic/progress.js';
 import { sanitizeWallet, addCoins, levelReward, endlessReward } from './logic/powerups.js';
 import { pickLanguage, setLanguage, t } from './i18n.js';
 import { createSound } from './audio/sound.js';
+import { createStore, serializeGame, deserializeGame } from './logic/storage.js';
 import { createMenu, createSettings, createQuestsScreen, createAchievementsScreen } from './ui/menuScreens.js';
 import { sanitizeStats, eventsFromMove, applyStatEvents, checkAchievements, rollQuests, trackQuests, claimableCount, createLogin, checkLogin } from './logic/meta.js';
 import { drawIcon } from './ui/widgets.js';
@@ -17,6 +20,10 @@ import { submitScore } from './net/leaderboard.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
+// Fon alohida qatlamda (bir marta chiziladi) — har kadrda katta rasmni qayta chizmaslik uchun.
+const bgCanvas = document.getElementById('bg');
+const bgCtx = bgCanvas ? bgCanvas.getContext('2d', { alpha: false }) : null;
+let bgKey = '';
 
 const toasts = [];
 const app = {
@@ -36,6 +43,17 @@ const app = {
     app.requestFrame();
   },
   requestFrame,
+  paintBg() {
+    const key = `${app.w}x${app.h}@${app.dpr}`;
+    if (bgCtx && bgKey !== key) {
+      bgKey = key;
+      bgCanvas.width = Math.round(app.w * app.dpr); bgCanvas.height = Math.round(app.h * app.dpr);
+      bgCanvas.style.width = app.w + 'px'; bgCanvas.style.height = app.h + 'px';
+      bgCtx.drawImage(backgroundCanvas(app.w, app.h, app.dpr), 0, 0, bgCanvas.width, bgCanvas.height);
+    }
+    if (bgCtx) ctx.clearRect(0, 0, app.w, app.h);
+    else ctx.drawImage(backgroundCanvas(app.w, app.h, app.dpr), 0, 0, app.w, app.h);
+  },
 };
 
 function resize() {
@@ -96,8 +114,12 @@ canvas.addEventListener('pointercancel', (e) => {
 window.addEventListener('resize', () => { resize(); requestFrame(); });
 
 // --- saqlash (10-bosqichda kengaytiriladi) ---
-const load = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } };
-const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+let backend = null;
+try { backend = window.localStorage; } catch { backend = null; }
+const store = createStore(backend);
+store.migrate();
+const load = (k, d) => store.get(k.replace(/^koshin\./, ''), d);
+const save = (k, v) => store.set(k.replace(/^koshin\./, ''), v);
 
 // Yutuq va xabarlar lentasi (har qanday ekran ustida)
 function drawToasts(now) {
@@ -123,7 +145,7 @@ setLanguage(settings.lang || pickLanguage(navigator.languages || [navigator.lang
 const audio = createSound(settings);
 app.audio = audio;
 app.sound = (name) => audio.play(name);
-document.addEventListener('visibilitychange', () => { if (document.hidden) audio.pause(); else if (audio.started) audio.resume(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { audio.pause(); saveEndless(); } else if (audio.started) audio.resume(); });
 
 let progress = sanitizeProgress(load('koshin.progress', createProgress()));
 let best = Number(load('koshin.best', 0)) || 0;
@@ -180,21 +202,37 @@ function openLevel(index) {
   }));
 }
 
+let endlessScreen = null;
+function saveEndless() {
+  const g = endlessScreen && endlessScreen.game;
+  if (!g) return;
+  if (g.over) store.remove('endlessGame'); else save('koshin.endlessGame', serializeGame(g));
+}
 function openEndless() {
+  const resumed = deserializeGame(load('koshin.endlessGame', null));
+  let first = true;
   const screen = createGameScreen(app, {
+    createGame: () => {
+      const g = first && resumed;
+      first = false;
+      return g || createGame(Date.now());
+    },
     best: () => best,
     bestX: 60,
     ...walletHooks,
-    onMove(game) { if (game.score > best) { best = game.score; save('koshin.best', best); } },
+    onMove(game) { if (game.score > best) { best = game.score; save('koshin.best', best); } saveEndless(); },
+    onRestart() { store.remove('endlessGame'); },
     onOver(game) {
+      store.remove('endlessGame');
       addCoins(wallet, endlessReward(game.score)); saveWallet();
       submitScore('endless', { score: game.score });
       record([{ type: 'endlessBest', max: game.score }]);
       app.sfx('lose');
     },
-    pointerDown(x, y) { if (hit(x, y, 30, 30, 24)) { openMenu(); return true; } return false; },
+    pointerDown(x, y) { if (hit(x, y, 30, 30, 24)) { saveEndless(); openMenu(); return true; } return false; },
     drawHUD(c) { drawRoundButton(c, 30, 30, 20, 'back', { fill: 'rgba(240,192,74,0.9)' }); },
   });
+  endlessScreen = screen;
   app.setScene(screen);
 }
 
@@ -216,6 +254,19 @@ function openSettings() {
       if (key === 'sound' && settings.sound) app.sfx('button');
     },
     onBack: openMenu,
+    // zaxira kodi: nusxa olish / boshqa telefondan joylash
+    async onExport() {
+      const code = store.exportAll();
+      try { if (navigator.share) { await navigator.share({ text: code }); return true; } } catch {}
+      try { await navigator.clipboard.writeText(code); return true; } catch { return false; }
+    },
+    onImport() {
+      const code = window.prompt('Koshin backup code');
+      if (!code) return false;
+      if (!store.importAll(code)) return false;
+      location.reload();
+      return true;
+    },
   }));
 }
 
@@ -267,3 +318,8 @@ window.__koshin = () => {
 };
 window.__app = app;
 window.__open = { level: openLevel, endless: openEndless, map: openMap, daily: openDaily, menu: openMenu, settings: openSettings, quests: openQuests, achievements: openAchievements };
+
+// PWA: internetsiz ishlash uchun service worker
+if ('serviceWorker' in navigator && /^https?:/.test(location.protocol) && !window.__noSW) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}

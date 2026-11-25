@@ -2,7 +2,7 @@
 
 Ishlayapti: 2026-11-25 05:28 UTC
 
-Keyingi bosqich: **10** (saqlash, PWA, internetsiz ishlash, tezlikni optimallashtirish)
+Keyingi bosqich: **11** (yakuniy umumiy test, GitHub Pages'ga joylash yo'riqnomasi)
 
 ## Bosqichlar holati
 - [x] 1. Loyiha tuzilmasi, 8x8 maydon, sudrab qo'yish — 2026-11-24
@@ -14,7 +14,7 @@ Keyingi bosqich: **10** (saqlash, PWA, internetsiz ishlash, tezlikni optimallash
 - [x] 7. Kuchaytirgichlar va tanga tizimi — 2026-11-25
 - [x] 8. Kunlik Naqsh va ulashish; Cheksiz rejim — 2026-11-25
 - [x] 9. Topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, sozlamalar, 4 til — 2026-11-25
-- [ ] 10. Saqlash, PWA, internetsiz ishlash, tezlikni optimallashtirish
+- [x] 10. Saqlash, PWA, internetsiz ishlash, tezlikni optimallashtirish — 2026-11-25
 - [ ] 11. Yakuniy umumiy test, GitHub Pages'ga joylash yo'riqnomasi
 
 ## Ochiq xatolar / foydalanuvchi takliflari
@@ -87,3 +87,10 @@ Keyingi bosqich: **10** (saqlash, PWA, internetsiz ishlash, tezlikni optimallash
 - Tebranish sozlamaga bog'landi. Bosh menyu (Sarguzasht, Kunlik Naqsh, Cheksiz, Topshiriqlar, Yutuqlar, Sozlamalar), sozlamalar (ovoz, musiqa, tebranish, til: English/O'zbekcha/Русский/Türkçe), xaritada uyga qaytish tugmasi.
 - 4 til: menyu, topshiriqlar, yutuqlar, sovg'a matnlari; til avtomatik, sozlamadan o'zgartiriladi.
 - Testlar: 84/84 (ovoz sintezi ham Node'da tekshiriladi: so'nish, klik yo'qligi, lad, kuy deterministikligi). Tutun testi: menyu, sozlamalar, topshiriqlar, yutuqlar, xarita ekranlari xatosiz ochiladi.
+
+### 2026-11-25 — 10-bosqich
+- Saqlash: `storage.js` — versiyali saqlash (eski ma'lumotni ko'chirish), buzilgan JSON va to'lib qolgan xotiraga chidamli (o'yin xotirada davom etadi), zaxira kodi (eksport/import, sozlamalarda — boshqa telefonga ko'chirish uchun). Cheksiz o'yin har yurishdan keyin va ilova fonga o'tganda saqlanadi; qaytib kirganda aynan shu joydan davom etadi (RNG holati ham tiklanadi).
+- PWA: `manifest.webmanifest`, belgilar (`icons/` — koshin plitkalaridan `tools/make-icons.mjs` bilan yaratilgan, maskable ham), `sw.js` (barcha fayllar oldindan keshlanadi, eski kesh tozalanadi); `npm run build` (`tools/build-sw.mjs`) fayllar ro'yxati va kesh versiyasini avtomatik yangilaydi; test sw.js eskirib qolmaganini tekshiradi.
+- Internetsiz ishlash: tutun testida tarmoq o'chirilib qayta yuklanadi — o'yin ochiladi.
+- Tezlik: fon alohida canvas qatlamida (bir marta chiziladi), maydon hoshiyasi + 64 bo'sh katak bitta keshlangan rasm, sudralayotgan shakl soyasi `shadowBlur` siz, zarrachalar save/restore'siz. Og'ir kadr: 4.0 ms → 0.8 ms (6 barobar tez).
+- Testlar: 91/91.
