@@ -1,6 +1,7 @@
 // O'yin holati: maydon + pastdagi 3 ta shakl (tray), ochko, combo, streak.
 import { createBoard, placePiece, canPlaceAnywhere, BOARD_SIZE } from './board.js';
-import { createRng, randomPiece } from './shapes.js';
+import { createRng } from './shapes.js';
+import { generateTray } from './generator.js';
 import { clearLines, applyMoveScore, isBoardEmpty } from './score.js';
 
 export const TRAY_SIZE = 3;
@@ -17,8 +18,20 @@ export function createGame(seed = Date.now(), opts = {}) {
 }
 
 export function refillTray(state) {
-  const gen = state.opts && state.opts.generator;
-  state.tray = gen ? gen(state) : Array.from({ length: TRAY_SIZE }, () => randomPiece(state.rng));
+  const o = state.opts || {};
+  if (o.generator) { state.tray = o.generator(state); return; }
+  const difficulty = typeof o.difficulty === 'function' ? o.difficulty(state) : (o.difficulty ?? defaultDifficulty(state));
+  state.tray = generateTray(state.board, state.rng, { difficulty, fairness: typeof o.fairness === 'function' ? o.fairness(state) : (o.fairness || defaultFairness(state)), pool: o.pool });
+}
+
+// Dastlabki yurishlarda qat'iy adolat, keyin oddiy.
+export function defaultFairness(state) {
+  return (state.moves || 0) < 30 ? 'strict' : 'normal';
+}
+
+// Cheksiz rejim uchun: ochko oshgan sari qiyinlik sekin o'sadi (0.15 → 0.85).
+export function defaultDifficulty(state) {
+  return Math.min(0.85, 0.15 + (state.score || 0) / 20000);
 }
 
 // trayIndex dagi shaklni (row, col) ga qo'yishga urinish.

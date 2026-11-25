@@ -2,12 +2,12 @@
 
 Ishlayapti: 2026-11-25 05:28 UTC
 
-Keyingi bosqich: **3** (shakl generatori va adolatlilik qoidasi)
+Keyingi bosqich: **4** (koshin dizayni: plitkalar, fon, ranglar, animatsiyalar)
 
 ## Bosqichlar holati
 - [x] 1. Loyiha tuzilmasi, 8x8 maydon, sudrab qo'yish — 2026-11-24
 - [x] 2. Qator/ustun tozalash, ochko, combo, streak, o'yin tugashi — 2026-11-25
-- [ ] 3. Shakl generatori va adolatlilik qoidasi
+- [x] 3. Shakl generatori va adolatlilik qoidasi — 2026-11-25
 - [ ] 4. Koshin dizayni: plitkalar, fon, ranglar, animatsiyalar
 - [ ] 5. Sarguzasht: bosqich generatori, maqsadlar, yulduzlar, Ipak Yo'li xaritasi
 - [ ] 6. To'siqlar, boss bosqichlar, binoni qayta qurish, "Abadiy yo'l"
@@ -35,3 +35,8 @@ Keyingi bosqich: **3** (shakl generatori va adolatlilik qoidasi)
 - `tools/smoke.mjs` — Playwright bilan brauzer tutun testi (sahifa xatosiz yuklanadi, sudrab qo'yish ishlaydi).
 - Testlar: 20/20 o'tdi.
 - Tuzatilgan xato: Playwright ES modulda topilmadi → `createRequire` orqali yuklandi; `localStorage` ba'zi muhitlarda xato berishi mumkin → try/catch.
+
+### 2026-11-25 — 3-bosqich
+- Qilindi: `src/logic/generator.js` — qiyinlikka qarab og'irlikli tanlov (oson: kichik shakllar, qiyin: katta), 3 xil adolat rejimi: `strict` (uchala shaklni qaysidir tartibda joylash mumkinligi DFS bilan tekshiriladi), `normal` (maydon ≥55% to'lsa qator yopuvchi "rahm" shakli), `none`; har doim kamida 1 ta shakl joylashishi kafolatlanadi; 3 ta bir xil shakl chiqmaydi. Shakllar 39 taga yetdi (burilgan variantlar), `rotateCells`/`shapeIdOf` (7-bosqichdagi Aylantirish uchun tayyor).
+- `game.js`: dastlabki 30 yurish `strict`, keyin `normal`; qiyinlik ochko bilan sekin o'sadi. `opts.difficulty/fairness/pool/generator` orqali bosqichlar sozlanadi.
+- Testlar: 30/30 o'tdi (300 tasodifiy maydonda kafolat, 15 ta to'liq avtomatik o'yin simulyatsiyasi). Eng og'ir holatda generator ~5 ms.
