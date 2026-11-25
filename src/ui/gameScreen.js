@@ -437,6 +437,7 @@ export function createGameScreen(app, hooks = {}) {
       if (game.over) {
         if (hooks.onOverTap) { if (performance.now() - overAt > 300) hooks.onOverTap(x, y, L, game); return; }
         if (restartHit(x, y) && performance.now() - overAt > 300) screen.restart();
+        else if (hooks.pointerDown) hooks.pointerDown(x, y, L, game); // masalan, ortga tugmasi
         return;
       }
       if (hooks.pointerDown && hooks.pointerDown(x, y, L, game)) return;

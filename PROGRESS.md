@@ -1,8 +1,8 @@
 # Koshin — rivojlanish jurnali
 
-Ishlayapti: 2026-11-25 05:28 UTC
+Ishlayapti: yo'q
 
-Keyingi bosqich: **11** (yakuniy umumiy test, GitHub Pages'ga joylash yo'riqnomasi)
+Keyingi bosqich: **hammasi tugadi** — endi foydalanuvchi sinovi va takliflar (pastdagi "Ochiq xatolar" ro'yxati)
 
 ## Bosqichlar holati
 - [x] 1. Loyiha tuzilmasi, 8x8 maydon, sudrab qo'yish — 2026-11-24
@@ -15,7 +15,7 @@ Keyingi bosqich: **11** (yakuniy umumiy test, GitHub Pages'ga joylash yo'riqnoma
 - [x] 8. Kunlik Naqsh va ulashish; Cheksiz rejim — 2026-11-25
 - [x] 9. Topshiriqlar, yutuqlar, ovoz/musiqa, tebranish, menyu, sozlamalar, 4 til — 2026-11-25
 - [x] 10. Saqlash, PWA, internetsiz ishlash, tezlikni optimallashtirish — 2026-11-25
-- [ ] 11. Yakuniy umumiy test, GitHub Pages'ga joylash yo'riqnomasi
+- [x] 11. Yakuniy umumiy test, GitHub Pages'ga joylash yo'riqnomasi — 2026-11-25
 
 ## Ochiq xatolar / foydalanuvchi takliflari
 (hozircha yo'q)
@@ -94,3 +94,10 @@ Keyingi bosqich: **11** (yakuniy umumiy test, GitHub Pages'ga joylash yo'riqnoma
 - Internetsiz ishlash: tutun testida tarmoq o'chirilib qayta yuklanadi — o'yin ochiladi.
 - Tezlik: fon alohida canvas qatlamida (bir marta chiziladi), maydon hoshiyasi + 64 bo'sh katak bitta keshlangan rasm, sudralayotgan shakl soyasi `shadowBlur` siz, zarrachalar save/restore'siz. Og'ir kadr: 4.0 ms → 0.8 ms (6 barobar tez).
 - Testlar: 91/91.
+
+### 2026-11-25 — 11-bosqich
+- Yakuniy umumiy test: `tools/e2e.mjs` — brauzerda HAQIQIY sudrash bilan to'liq oqim: menyu → xarita → 1-bosqich tugunini bosish → bot sudrab o'ynab yutadi (shakl aniq joyga tushishi tekshiriladi) → yulduz va tanga saqlanadi → "keyingi" → mag'lubiyat → "+5 yurish" → Cheksiz o'yin qayta yuklashdan keyin davom etadi → til O'zbekchaga o'zgaradi va saqlanadi → iPhone SE (320×568) ekraniga sig'adi. Hammasi ✓.
+- Tutun testi: 390×844, 320×568, 1280×720 o'lchamlarda barcha ekranlar xatosiz; internetsiz qayta yuklash ✓; og'ir kadr 0.8 ms.
+- Tuzatilgan xatolar: (1) Cheksiz rejimda o'yin tugagach "ortga" tugmasi ishlamasdi (faqat ↻ bor edi) → endi ishlaydi; (2) kichik ekranda menyudagi "Sarguzasht" yozuvi pastki tugmalarga tegib qolardi → tugmalar ekran balandligiga qarab kichrayadi; (3) tutun testi ekran o'lchamiga bog'liq koordinata ishlatardi → tuzatildi.
+- `DEPLOY.md` — GitHub Pages'ni yoqish (Settings → Pages → main / root), telefonda ochish va o'rnatish, yangilash, Google Play (TWA/Bubblewrap) yo'li. `README.md` — o'zingiz sinab ko'rish uchun 13 bandlik ro'yxat. `.nojekyll` qo'shildi.
+- Testlar: 91/91 (mantiq) + tutun + E2E.

@@ -1,6 +1,6 @@
 // Service worker: o'yin internetsiz ishlashi uchun barcha fayllar keshlanadi (cache-first).
 // FILES va VERSION ni tools/build-sw.mjs avtomatik yangilaydi.
-const VERSION = '75b890df88';
+const VERSION = 'f481f1aa48';
 const CACHE = 'koshin-' + VERSION;
 const FILES = [
   './icons/icon-192.png',

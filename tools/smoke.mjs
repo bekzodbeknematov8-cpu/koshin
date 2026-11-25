@@ -15,7 +15,8 @@ const server = createServer(async (req, res) => {
 }).listen(0);
 const port = server.address().port;
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
+const [vw, vh] = (process.env.VIEWPORT || '390x844').split('x').map(Number);
+const page = await browser.newPage({ viewport: { width: vw, height: vh }, hasTouch: true });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -47,7 +48,7 @@ if (await page.evaluate(() => !!(window.__open && window.__open.daily))) {
   await page.evaluate(() => window.__open.daily());
   await page.waitForTimeout(200);
   if (process.env.SHOTS) await page.screenshot({ path: process.env.SHOTS + '/daily-hub.png' });
-  await page.mouse.click(195, 844 * 0.72);
+  await page.mouse.click(vw / 2, vh * 0.72);
   await page.waitForTimeout(200);
   const st = await page.evaluate(() => window.__koshin());
   if (st.scene === 'map' || st.moves !== 0) throw new Error('kunlik o\'yin ochilmadi');

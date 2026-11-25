@@ -28,13 +28,14 @@ export function createMenu(app, opts) {
   let w = 0, h = 0, popup = null, popT = 0;
   const items = () => {
     const cy = h * 0.6;
+    const k = Math.min(1, h / 760); // kichik ekranlarda tugmalar kichrayadi
     return [
-      { id: 'play', icon: 'play', x: w / 2, y: h * 0.42, r: 52, label: 'menu.play' },
-      { id: 'daily', icon: 'calendar', x: w / 2 - 80, y: cy, r: 32, label: 'menu.daily', badge: opts.badges.daily },
-      { id: 'endless', icon: 'infinity', x: w / 2 + 80, y: cy, r: 32, label: 'menu.endless' },
-      { id: 'quests', icon: 'list', x: w / 2 - 100, y: h * 0.78, r: 26, label: 'menu.quests', badge: opts.badges.quests },
-      { id: 'achievements', icon: 'trophy', x: w / 2, y: h * 0.78, r: 26, label: 'menu.achievements' },
-      { id: 'settings', icon: 'gear', x: w / 2 + 100, y: h * 0.78, r: 26, label: 'menu.settings' },
+      { id: 'play', icon: 'play', x: w / 2, y: h * 0.42, r: 52 * k, label: 'menu.play' },
+      { id: 'daily', icon: 'calendar', x: w / 2 - 80, y: cy, r: 32 * k, label: 'menu.daily', badge: opts.badges.daily },
+      { id: 'endless', icon: 'infinity', x: w / 2 + 80, y: cy, r: 32 * k, label: 'menu.endless' },
+      { id: 'quests', icon: 'list', x: w / 2 - 100, y: h * 0.78, r: 26 * k, label: 'menu.quests', badge: opts.badges.quests },
+      { id: 'achievements', icon: 'trophy', x: w / 2, y: h * 0.78, r: 26 * k, label: 'menu.achievements' },
+      { id: 'settings', icon: 'gear', x: w / 2 + 100, y: h * 0.78, r: 26 * k, label: 'menu.settings' },
     ];
   };
   return {
@@ -62,7 +63,7 @@ export function createMenu(app, opts) {
         const pulse = b.id === 'play' ? 1 + 0.04 * Math.sin(now / 300) : 1;
         drawRoundButton(ctx, b.x, b.y, b.r * pulse, b.icon, { badge: b.badge && b.badge() });
         ctx.fillStyle = UI.text; ctx.font = `bold ${b.id === 'play' ? 18 : 13}px ${FONT}`; ctx.textAlign = 'center';
-        ctx.fillText(t(b.label), b.x, b.y + b.r + 16);
+        ctx.fillText(t(b.label), b.x, b.y + b.r + 14);
       }
       if (popup) drawPopup(ctx, now);
     },
