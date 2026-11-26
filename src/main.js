@@ -212,15 +212,16 @@ app.track = (res) => record(eventsFromMove(res));
 
 resize();
 
-function openMenu() { app.setScene(menu); }
+function openMenu() { audio.setTheme('menu'); app.setScene(menu); }
 
 function openMap(focusIndex) {
   if (focusIndex !== undefined) map.focus(focusIndex);
+  audio.setTheme('menu');
   app.setScene(map);
 }
 
 function openLevel(index) {
-  app.setScene(createLevelScreen(app, index, {
+  const lv = createLevelScreen(app, index, {
     onExit: () => openMap(index),
     onWin: (i, stars, g) => {
       const prevStars = progress.stars[i] || 0;
@@ -246,7 +247,9 @@ function openLevel(index) {
     canDouble: () => app.ads.canShow('double_coins'),
     adFail,
     extraHooks: walletHooks,
-  }));
+  });
+  audio.setTheme(lv.level.city || 'eternal');
+  app.setScene(lv);
 }
 
 let endlessScreen = null;
@@ -290,10 +293,12 @@ function openEndless() {
     drawHUD(c) { drawRoundButton(c, 30, 30, 20, 'back', { fill: 'rgba(240,192,74,0.9)' }); },
   });
   endlessScreen = screen;
+  audio.setTheme('eternal');
   app.setScene(screen);
 }
 
 function openDaily(back = openMenu) {
+  audio.setTheme('daily');
   app.setScene(createDailyHub(app, {
     getState: () => daily, saveState: saveDaily, wallet, onWallet: saveWallet, onBack: () => back(),
     onFinish: (game, s) => record([{ type: 'dailyPlayed', n: 1 }, { type: 'dailyStreakBest', max: s.streak }]),

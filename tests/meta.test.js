@@ -108,3 +108,20 @@ test('4 til: barcha kalitlar har tilda bor, parametrli matn', () => {
   assert.equal(tf('quest.lines', { n: 10 }, 'en'), 'Clear 10 lines');
   assert.equal(tf('quest.lines', { n: 10 }, 'uz'), '10 ta qator tozalang');
 });
+
+test('musiqa: har shahar o\'z kuyi, notalar lad ichida', async () => {
+  const { themeMusic, MUSIC_THEMES, SCALES, scaleNote: sn } = await import('../src/audio/synth.js');
+  const { CITIES } = await import('../src/logic/levels.js');
+  for (const c of CITIES) assert.ok(MUSIC_THEMES[c.id], 'mavzu: ' + c.id);
+  const seen = new Set();
+  for (const name of Object.keys(MUSIC_THEMES)) {
+    const th = themeMusic(name);
+    assert.ok(th.melody.length > 20 && th.doiraPattern.length === 6);
+    assert.ok(th.beat > 0.2 && th.beat < 0.5);
+    seen.add(JSON.stringify(th.melody.map((n) => n.step)) + th.scale + th.base);
+    for (const n of th.melody) { const m = sn(n.step, 0, th.scaleArr, th.base); assert.ok(m >= 55 && m <= 90, 'diapazon ' + m); }
+  }
+  assert.equal(seen.size, Object.keys(MUSIC_THEMES).length, 'hamma kuylar har xil');
+  assert.equal(themeMusic('yoq').seed, MUSIC_THEMES.menu.seed);
+  assert.equal(sn(2, 0, SCALES.major, 60), 64);
+});

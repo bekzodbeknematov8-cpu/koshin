@@ -103,6 +103,7 @@ export function createLevelScreen(app, index, { onExit, onWin, onNext, onLeave, 
         for (let s = 0; s < 3; s++) {
           const appear = clamp01((dt - 300 - s * 250) / 300);
           const sc = s < g.stars ? easeOutBack(appear, 2.5) : 1;
+          if (s < g.stars && appear > 0 && !(g.starSfx > s)) { g.starSfx = s + 1; app.sfx('star'); app.vibrate(10); }
           ctx.save();
           ctx.translate(L.w / 2 + (s - 1) * 70, py + 70 - (s === 1 ? 12 : 0));
           ctx.scale(sc || 0.001, sc || 0.001);

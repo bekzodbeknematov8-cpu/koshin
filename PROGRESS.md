@@ -21,8 +21,8 @@ Keyingi bosqich: **hammasi tugadi** — endi foydalanuvchi sinovi va takliflar (
 Foydalanuvchi so'rovi (2026-11-26): "yanada yaxshila" — grafika, balans, yangi imkoniyatlar, ovoz, reklama orqali daromad. Muhimlik bo'yicha:
 - [x] 1. Reklama tizimi: rewarded (yurish, x2 tanga, bepul kuchaytirgich, Cheksizda "ikkinchi imkoniyat", bepul tanga) + cheklangan interstitial; AdSense H5 / AdMob ulash joyi; `ADS.md` yo'riqnoma
 - [x] 2. Omad charxpalagi: kuniga 1 bepul aylantirish, reklama bilan yana
-- [ ] 3. Grafika: tozalash nuri, to'lqin halqasi, ochko uchishi, "perfect" chaqnashi
-- [ ] 4. Ovoz: har shaharga o'z kuyi, yangi effektlar
+- [x] 3. Grafika: tozalash nuri, to'lqin halqasi, ochko uchishi, "perfect" chaqnashi
+- [x] 4. Ovoz: har shaharga o'z kuyi, yangi effektlar
 - [ ] 5. Balans: bosqich qiyinligi va mukofotlarni ko'rib chiqish
 
 ## Hisobotlar
@@ -118,3 +118,8 @@ Foydalanuvchi so'rovi (2026-11-26): "yanada yaxshila" — grafika, balans, yangi
 - `src/logic/wheel.js` + `src/ui/wheelScreen.js` — Omad charxi (8 bo'lak, kuniga 1 bepul).
 - Tuzatildi: ikkinchi imkoniyatdan keyin Cheksizda tanga ikki marta berilmaydi (faqat yangi ochko uchun).
 - Testlar: 99/99 (+8 yangi), smoke OK, E2E OK (+8 yangi tekshiruv: charx, bepul tanga, ikkinchi imkoniyat, demo reklama).
+
+### 2026-11-26 — Yaxshilash 3–4: grafika va ovoz
+- Grafika: tozalangan qator/ustun bo'ylab oltin nur, joylashgan shakldan to'lqin halqasi (combo'da ikkinchi firuza halqa), "perfect"da ekran chaqnashi, yangi 3 shakl pastdan sakrab kiradi.
+- Ovoz: 10 ta kuy mavzusi (`MUSIC_THEMES`) — har shahar, menyu, Kunlik Naqsh va Abadiy yo'l uchun o'z ladi (hijoz, dorian, frigiy, major, minor), tonikasi, tempi va doira usuli; kuy takt boshidan uzilishsiz almashadi. Ikkinchi tor ovozi. Yangi effektlar: yulduz, charx chiqillashi, sovg'a, ikkinchi imkoniyat.
+- Testlar: 100/100, smoke OK, E2E OK.

@@ -1,12 +1,12 @@
 // WebAudio orqali ovoz va fon musiqasi. Bufferlar sintez qilinadi va keshlanadi.
-import { pluck, drum, midiToFreq, scaleNote, SFX, generateMelody, DOIRA_PATTERN } from './synth.js';
+import { pluck, drum, midiToFreq, scaleNote, SFX, themeMusic } from './synth.js';
 
 export function createSound(settings) {
   let ctx = null, master = null, sfxGain = null, musicGain = null;
   const cache = new Map();
   let musicTimer = null, nextTime = 0, pos = 0;
-  const melody = generateMelody();
-  const BEAT = 0.32; // soniya
+  let theme = themeMusic('menu');
+  let themeName = 'menu';
 
   function ensure() {
     if (ctx) return ctx;
@@ -39,7 +39,7 @@ export function createSound(settings) {
 
   function note(n, when, out, vol = 1) {
     if (n.drum) return playBuf(buffer('drum:' + n.drum, (sr) => drum(sr, n.drum)), when, out, vol * 0.8);
-    const m = scaleNote(n.step, n.oct || 0);
+    const m = n.music ? scaleNote(n.step, n.oct || 0, theme.scaleArr, theme.base) : scaleNote(n.step, n.oct || 0);
     const b = n.b ?? 0.6, dur = n.dur ?? 0.7;
     playBuf(buffer(`p:${m}:${b}:${dur}`, (sr) => pluck(midiToFreq(m), sr, dur, { brightness: b, seed: m })), when, out, vol);
   }
@@ -57,11 +57,12 @@ export function createSound(settings) {
     const per = 6; // 6/8
     while (nextTime < ctx.currentTime + 0.6) {
       const bar = Math.floor(pos / per) % 8, beat = pos % per;
-      for (const n of melody) if (n.bar === bar && n.beat === beat) note({ step: n.step, b: 0.45, dur: 0.9 }, nextTime, musicGain, 0.9);
-      if (beat === 0) note({ step: [0, 0, 3, 0, 0, 4, 3, 0][bar], oct: -1, b: 0.3, dur: 1.6 }, nextTime, musicGain, 0.6); // dutor bas tori
-      const d = DOIRA_PATTERN[beat];
+      for (const n of theme.melody) if (n.bar === bar && n.beat === beat) note({ step: n.step, b: 0.45, dur: 0.9, music: true }, nextTime, musicGain, 0.9);
+      if (beat === 0) note({ step: [0, 0, 3, 0, 0, 4, 3, 0][bar], oct: -1, b: 0.3, dur: 1.6, music: true }, nextTime, musicGain, 0.6); // dutor bas tori
+      if (beat === 3 && bar % 2 === 1) note({ step: 4, oct: -1, b: 0.3, dur: 1.2, music: true }, nextTime, musicGain, 0.35); // ikkinchi tor
+      const d = theme.doiraPattern[beat];
       if (d) note({ drum: d }, nextTime, musicGain, 0.35);
-      nextTime += BEAT;
+      nextTime += theme.beat;
       pos++;
     }
   }
@@ -88,5 +89,13 @@ export function createSound(settings) {
   function pause() { stopMusic(); if (ctx && ctx.state === 'running') ctx.suspend(); }
   function resume() { if (ctx) ctx.resume(); if (settings.music !== false) startMusic(); }
 
-  return { play, startMusic, stopMusic, unlock, pause, resume, get started() { return !!ctx; } };
+  // Shahar/ekran kuyini almashtirish (keyingi taktdan boshlab, uzilishsiz)
+  function setTheme(name) {
+    if (name === themeName) return;
+    themeName = name;
+    theme = themeMusic(name);
+    pos = Math.ceil(pos / 6) * 6; // yangi takt boshidan
+  }
+
+  return { play, startMusic, stopMusic, unlock, pause, resume, setTheme, get theme() { return themeName; }, get started() { return !!ctx; } };
 }

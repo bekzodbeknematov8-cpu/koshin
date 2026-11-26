@@ -7,11 +7,48 @@ export const SCALE = [0, 1, 4, 5, 7, 8, 11, 12];
 export const BASE_MIDI = 62; // D4
 
 export function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
-export function scaleNote(step, octave = 0) {
-  const n = SCALE.length - 1;
+export function scaleNote(step, octave = 0, scale = SCALE, base = BASE_MIDI) {
+  const n = scale.length - 1;
   const o = Math.floor(step / n);
   const i = ((step % n) + n) % n;
-  return BASE_MIDI + SCALE[i] + 12 * (o + octave);
+  return base + scale[i] + 12 * (o + octave);
+}
+
+// Ladlar (o'zbek/sharq musiqasida uchraydigan rang-baranglik)
+export const SCALES = {
+  hijaz: SCALE,                          // D Eb F# G A Bb C# — ortirilgan sekunda
+  dorian: [0, 2, 3, 5, 7, 9, 10, 12],    // yengil, kuychan
+  phrygian: [0, 1, 3, 5, 7, 8, 10, 12],  // sirli
+  major: [0, 2, 4, 5, 7, 9, 11, 12],     // quvnoq (bayram)
+  minor: [0, 2, 3, 5, 7, 8, 10, 12],     // mayin
+};
+
+// Har ekran/shahar o'z kuyiga ega: seed, lad, tonika, temp (BEAT soniya), doira usuli.
+export const MUSIC_THEMES = {
+  menu:       { seed: 1405, scale: 'hijaz',    base: 62, beat: 0.32, doira: 0 },
+  khiva:      { seed: 1220, scale: 'dorian',   base: 62, beat: 0.30, doira: 0 },
+  bukhara:    { seed: 2111, scale: 'minor',    base: 60, beat: 0.34, doira: 1 },
+  samarkand:  { seed: 1370, scale: 'hijaz',    base: 64, beat: 0.30, doira: 0 },
+  shahrisabz: { seed: 4410, scale: 'major',    base: 62, beat: 0.28, doira: 2 },
+  tashkent:   { seed: 2930, scale: 'dorian',   base: 65, beat: 0.27, doira: 2 },
+  kokand:     { seed: 1709, scale: 'phrygian', base: 62, beat: 0.31, doira: 1 },
+  termez:     { seed: 3330, scale: 'minor',    base: 59, beat: 0.35, doira: 0 },
+  eternal:    { seed: 7777, scale: 'phrygian', base: 60, beat: 0.33, doira: 1 },
+  daily:      { seed: 5050, scale: 'major',    base: 64, beat: 0.29, doira: 2 },
+};
+
+// Doira usullari (6/8)
+export const DOIRA_PATTERNS = [
+  ['dum', null, 'tak', 'tak', null, 'tak'],
+  ['dum', null, null, 'dum', 'tak', null],
+  ['dum', 'tak', null, 'dum', 'tak', 'tak'],
+];
+
+// Mavzu → ijro uchun tayyor ma'lumot (deterministik).
+export function themeMusic(name) {
+  const th = MUSIC_THEMES[name] || MUSIC_THEMES.menu;
+  const scale = SCALES[th.scale] || SCALE;
+  return { ...th, scaleArr: scale, melody: generateMelody(th.seed), doiraPattern: DOIRA_PATTERNS[th.doira] || DOIRA_PATTERNS[0] };
 }
 
 // Karplus–Strong: chertilgan tor. brightness 0..1 (rubob — yorqinroq, dutor — yumshoqroq).
