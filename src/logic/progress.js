@@ -2,7 +2,7 @@
 import { ADVENTURE_LEVELS, LEVELS_PER_CITY, CITIES } from './levels.js';
 
 export function createProgress() {
-  return { stars: {}, unlocked: 0 }; // stars: { [index]: 1..3 }, unlocked — ochiq eng katta index
+  return { stars: {}, unlocked: 0, fails: {} }; // stars: { [index]: 1..3 }, unlocked — ochiq eng katta index, fails — ketma-ket mag'lubiyatlar
 }
 
 export function recordResult(p, index, stars) {
@@ -10,7 +10,21 @@ export function recordResult(p, index, stars) {
   const prev = p.stars[index] || 0;
   if (stars > prev) p.stars[index] = stars;
   if (index + 1 > p.unlocked) p.unlocked = index + 1;
+  if (p.fails) delete p.fails[index];
   return p;
+}
+
+// Mag'lubiyat hisobi: bir bosqichda qayta-qayta yutqazgan o'yinchiga yordam yurishlari beriladi.
+export function recordFail(p, index) {
+  if (!p.fails) p.fails = {};
+  p.fails[index] = Math.min(20, (p.fails[index] || 0) + 1);
+  return p.fails[index];
+}
+
+// 2 marta yutqazsa +3, 4 marta +6 yurish (yulduzlarga ta'sir qilmaydi).
+export function helpMoves(p, index) {
+  const f = (p.fails && p.fails[index]) || 0;
+  return f >= 4 ? 6 : f >= 2 ? 3 : 0;
 }
 
 export function isUnlocked(p, index) { return index <= p.unlocked; }
@@ -42,6 +56,11 @@ export function sanitizeProgress(raw) {
     for (const [k, v] of Object.entries(raw.stars)) {
       const i = Number(k);
       if (Number.isInteger(i) && i >= 0 && [1, 2, 3].includes(v)) p.stars[i] = v;
+    }
+  if (raw.fails && typeof raw.fails === 'object')
+    for (const [k, v] of Object.entries(raw.fails)) {
+      const i = Number(k);
+      if (Number.isInteger(i) && i >= 0 && Number.isInteger(v) && v > 0) p.fails[i] = Math.min(20, v);
     }
   return p;
 }

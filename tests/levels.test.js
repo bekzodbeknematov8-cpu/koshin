@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateLevel, levelDifficulty, CITIES, LEVELS_PER_CITY, ADVENTURE_LEVELS, starsFor, cityOf } from '../src/logic/levels.js';
-import { createLevelGame, levelPlace, goalsMet, continueLevel } from '../src/logic/levelGame.js';
+import { createLevelGame, levelPlace, goalsMet, continueLevel, updateStatus } from '../src/logic/levelGame.js';
 import { createProgress, recordResult, isUnlocked, totalStars, cityStars, cityCompleted, sanitizeProgress, eternalUnlocked } from '../src/logic/progress.js';
 import { bestMove } from '../src/logic/bot.js';
 
@@ -117,4 +117,43 @@ test('progress: ochilish, yulduzlar, tozalash', () => {
   assert.deepEqual(s.stars, { 0: 3, 2: 1 });
   assert.equal(sanitizeProgress(null).unlocked, 0);
   assert.equal(sanitizeProgress({ unlocked: -5 }).unlocked, 0);
+});
+
+test('balans: har shaharda bot kamida 60% bosqichni yutadi (keskin sakrash yo\'q)', async () => {
+  const { CITIES, LEVELS_PER_CITY } = await import('../src/logic/levels.js');
+  for (let c = 0; c < CITIES.length; c++) {
+    let won = 0;
+    for (let k = 0; k < LEVELS_PER_CITY; k++) {
+      const g = createLevelGame(generateLevel(c * LEVELS_PER_CITY + k));
+      let guard = 0;
+      while (g.status === 'playing' && guard++ < 400) { const m = bestMove(g); if (!m) break; levelPlace(g, m.index, m.row, m.col); }
+      if (g.status === 'won') won++;
+    }
+    assert.ok(won >= LEVELS_PER_CITY * 0.6, `${CITIES[c].id}: faqat ${won}/${LEVELS_PER_CITY}`);
+  }
+});
+
+test('yordam yurishlari: 2 mag\'lubiyatdan keyin +3, 4 dan keyin +6, g\'alaba tozalaydi; yulduzga ta\'sir qilmaydi', async () => {
+  const { recordFail, helpMoves, recordResult, createProgress, sanitizeProgress } = await import('../src/logic/progress.js');
+  const p = createProgress();
+  assert.equal(helpMoves(p, 5), 0);
+  recordFail(p, 5); assert.equal(helpMoves(p, 5), 0);
+  recordFail(p, 5); assert.equal(helpMoves(p, 5), 3);
+  recordFail(p, 5); recordFail(p, 5); assert.equal(helpMoves(p, 5), 6);
+  for (let i = 0; i < 30; i++) recordFail(p, 5);
+  assert.equal(p.fails[5], 20);
+  assert.equal(helpMoves(p, 6), 0, 'boshqa bosqich');
+  assert.equal(sanitizeProgress(JSON.parse(JSON.stringify(p))).fails[5], 20);
+  assert.deepEqual(sanitizeProgress({ fails: { 1: -2, x: 3, 2: 'a' } }).fails, {});
+  recordResult(p, 5, 1);
+  assert.equal(helpMoves(p, 5), 0);
+  const lv = generateLevel(0);
+  const g = createLevelGame(lv, { bonusMoves: 6 });
+  assert.equal(g.movesLeft, lv.moves + 6);
+  g.movesLeft = 6; // faqat yordam yurishlari qoldi
+  for (const x of g.goals) x.done = x.target;
+  g.linesCleared = 99;
+  updateStatus(g);
+  assert.equal(g.status, 'won');
+  assert.equal(g.stars, 1, 'yordam yurishlari yulduz bermaydi');
 });

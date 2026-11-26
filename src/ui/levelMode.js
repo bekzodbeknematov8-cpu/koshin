@@ -23,7 +23,7 @@ export function goalIcon(ctx, type, x, y, s) {
 }
 goalIcon.extra = {};
 
-export function createLevelScreen(app, index, { onExit, onWin, onNext, onLeave, onDouble, canDouble, adFail, extraHooks = {} }) {
+export function createLevelScreen(app, index, { onExit, onWin, onLose, onNext, onLeave, onDouble, canDouble, adFail, bonusMoves = () => 0, extraHooks = {} }) {
   const leave = (go) => (onLeave ? onLeave(go) : go());
   const level = generateLevel(index);
   goalIcon.dpr = app.dpr;
@@ -42,7 +42,7 @@ export function createLevelScreen(app, index, { onExit, onWin, onNext, onLeave, 
   };
 
   const hooks = {
-    createGame: () => createLevelGame(level),
+    createGame: () => createLevelGame(level, { bonusMoves: bonusMoves() }),
     place: (g, i, r, c) => levelPlace(g, i, r, c),
     powerup: (g, apply) => levelPowerup(g, apply),
     hudHeight: 118,
@@ -63,6 +63,10 @@ export function createLevelScreen(app, index, { onExit, onWin, onNext, onLeave, 
       ctx.strokeStyle = UI.gold; ctx.lineWidth = 2.5; ctx.stroke();
       ctx.fillStyle = '#fff'; ctx.font = `bold 22px ${FONT}`;
       ctx.fillText(String(g.movesLeft), mx, my + 1);
+      if (g.helpBonus && g.moves < 3) { // yordam yurishlari haqida belgi (dastlabki yurishlarda)
+        ctx.fillStyle = UI.turq; ctx.font = `bold 13px ${FONT}`;
+        ctx.fillText('+' + g.helpBonus, mx + 30, my - 22);
+      }
       // maqsadlar
       const gs = g.goals;
       gs.forEach((goal, k) => {
@@ -88,7 +92,7 @@ export function createLevelScreen(app, index, { onExit, onWin, onNext, onLeave, 
     onMove(g, res) {
       if (extraHooks.onMove) extraHooks.onMove(g, res);
       if (g.status === 'won') { app.sound && app.sound('win'); onWin && onWin(index, g.stars, g); }
-      else if (g.status === 'lost') app.sound && app.sound('lose');
+      else if (g.status === 'lost') { app.sound && app.sound('lose'); if (!g.failRecorded) { g.failRecorded = true; onLose && onLose(index, g); } }
     },
     drawOver(ctx, L, g, dt) {
       const k = easeOutCubic(dt / 400);

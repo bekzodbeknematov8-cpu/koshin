@@ -6,6 +6,7 @@ dutor/rubob uslubidagi ovozlar — hammasi kod bilan yaratilgan (tashqi rasm/ovo
 - **Sarguzasht**: Xiva → Buxoro → Samarqand → Shahrisabz → Toshkent → Qo'qon → Termiz (7 × 20 bosqich, har shaharda yangi to'siq, boss — binoni qayta qurish), keyin cheksiz "Abadiy yo'l".
 - **Kunlik Naqsh**: hamma uchun bir xil boshqotirma, ulashish, seriya va 7-kun mukofoti.
 - **Cheksiz**: rekord uchun.
+- Omad charxi, har shaharga o'z kuyi, reklama orqali daromad (AdMob / AdSense, [ADS.md](ADS.md)).
 - Kuchaytirgichlar (bomba, bolg'a, aylantirish, almashtirish), tangalar, topshiriqlar, yutuqlar, 4 til (EN/UZ/RU/TR), internetsiz ishlaydi.
 
 Joylash va telefonda ochish: [DEPLOY.md](DEPLOY.md). Ish jurnali: [PROGRESS.md](PROGRESS.md).
@@ -24,5 +25,8 @@ Joylash va telefonda ochish: [DEPLOY.md](DEPLOY.md). Ish jurnali: [PROGRESS.md](
 11. **Sozlamalar**: ovoz, musiqa, tebranish, til; zaxira kodi (boshqa telefonga ko'chirish).
 12. **Internetsiz**: bir marta ochgandan keyin samolyot rejimida oching.
 13. **Tezlik**: kuchsiz telefonda sudrash silliqmi?
+14. **Omad charxi** (menyu, pastda): kuniga 1 bepul aylantirish, keyin reklama bilan yana 2 ta.
+15. **Reklama joylari**: g'alabada "x2 tanga", Cheksizda "Ikkinchi imkoniyat", menyuda "Bepul tanga". Haqiqiy reklamani ulash: [ADS.md](ADS.md).
+16. **Yordam**: bir bosqichda 2 marta yutqazing — keyingi urinishda +3 yurish beriladi.
 
 Xato yoki taklif bo'lsa — `PROGRESS.md` dagi "Ochiq xatolar / foydalanuvchi takliflari" bandiga yozing (yoki menga ayting).

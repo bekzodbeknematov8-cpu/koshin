@@ -1,6 +1,6 @@
 # Koshin — rivojlanish jurnali
 
-Ishlayapti: 2026-11-26 17:11 UTC
+Ishlayapti: yo'q
 
 Keyingi bosqich: **hammasi tugadi** — endi foydalanuvchi sinovi va takliflar (pastdagi "Ochiq xatolar" ro'yxati)
 
@@ -23,7 +23,7 @@ Foydalanuvchi so'rovi (2026-11-26): "yanada yaxshila" — grafika, balans, yangi
 - [x] 2. Omad charxpalagi: kuniga 1 bepul aylantirish, reklama bilan yana
 - [x] 3. Grafika: tozalash nuri, to'lqin halqasi, ochko uchishi, "perfect" chaqnashi
 - [x] 4. Ovoz: har shaharga o'z kuyi, yangi effektlar
-- [ ] 5. Balans: bosqich qiyinligi va mukofotlarni ko'rib chiqish
+- [x] 5. Balans: bosqich qiyinligi va mukofotlarni ko'rib chiqish
 
 ## Hisobotlar
 
@@ -123,3 +123,11 @@ Foydalanuvchi so'rovi (2026-11-26): "yanada yaxshila" — grafika, balans, yangi
 - Grafika: tozalangan qator/ustun bo'ylab oltin nur, joylashgan shakldan to'lqin halqasi (combo'da ikkinchi firuza halqa), "perfect"da ekran chaqnashi, yangi 3 shakl pastdan sakrab kiradi.
 - Ovoz: 10 ta kuy mavzusi (`MUSIC_THEMES`) — har shahar, menyu, Kunlik Naqsh va Abadiy yo'l uchun o'z ladi (hijoz, dorian, frigiy, major, minor), tonikasi, tempi va doira usuli; kuy takt boshidan uzilishsiz almashadi. Ikkinchi tor ovozi. Yangi effektlar: yulduz, charx chiqillashi, sovg'a, ikkinchi imkoniyat.
 - Testlar: 100/100, smoke OK, E2E OK.
+
+### 2026-11-26 — Yaxshilash 5: balans
+- Bot sinovi (140 bosqich): Qo'qon keskin qiyin edi (bot 9/20 yutgan). Shaharlar bo'yicha qiyinlik o'sishi 0.1 → 0.085; ikki xil to'siqli bosqichlarda shakllar yengilroq (×0.6), to'siqlar uchun yurishlar ko'paydi; o'rgatish bosqichlarida kamida 14 yurish.
+- Natija (bot): har shaharda 75–100% (avval 45–100%). Yangi test: har shaharda kamida 60%.
+- Yordam yurishlari: bir bosqichda 2 marta yutqazsa +3, 4 marta +6 yurish (yulduzga ta'sir qilmaydi, g'alabadan keyin nolga tushadi).
+- Testlar: 102/102, smoke OK, E2E OK.
+
+Keyingi qadam: reklamadan pul tushishi uchun `ADS.md` bo'yicha AdSense (sayt) yoki AdMob (Google Play) ID'larini `src/ads/config.js` ga yozish.

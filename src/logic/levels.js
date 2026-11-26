@@ -30,7 +30,7 @@ export function levelDifficulty(index) {
   }
   const city = Math.floor(index / LEVELS_PER_CITY);
   const num = (index % LEVELS_PER_CITY) + 1;
-  let d = 0.05 + city * 0.1 + (num / LEVELS_PER_CITY) * 0.18;
+  let d = 0.05 + city * 0.085 + (num / LEVELS_PER_CITY) * 0.18; // (2026-11-26: 0.1 → 0.085, Qo'qon keskin qiyin edi)
   if (num % 5 === 0 && num !== LEVELS_PER_CITY) d -= 0.08;
   if (num === LEVELS_PER_CITY) d += 0.04;
   return Math.max(0, Math.min(0.9, d));
@@ -113,16 +113,19 @@ export function generateLevel(index) {
 
   // Yurishlar: maqsadga yetarli + zaxira; qiyinlik oshgan sari zaxira kamayadi.
   const buildCells = build ? BUILDING_CELLS[build] : 0;
-  const per = { lines: 2.8, score: 1 / 45, ice: 8, chain: 4, stone: 3.2, gems: 3.3, build: 0.5 };
+  // (balans 2026-11-26: bot sinovi bo'yicha to'siqlar uchun ko'proq, oddiy maqsadlar uchun biroz kamroq yurish)
+  const per = { lines: 2.8, score: 1 / 43, ice: 9, chain: 4.6, stone: 3.9, gems: 3.4, build: 0.5 };
   const needs = goals.map((g) => (g.type === 'build' ? buildCells : g.target) * per[g.type]);
-  // bir nechta maqsad bir-biriga yordam beradi: eng kattasi yoki yig'indining 60% i
-  const need = Math.max(...needs, 0.6 * needs.reduce((a, b) => a + b, 0));
-  const slack = 1.55 - difficulty * 0.35;
-  const moves = Math.max(8, Math.round(need * slack + 4));
+  // klassik maqsadlar bir-biriga yordam beradi (yig'indining 60%), ikki xil to'siq esa kamroq (85%)
+  const obsGoals = goals.filter((g) => ['ice', 'chain', 'stone', 'gems'].includes(g.type)).length;
+  const need = Math.max(...needs, (obsGoals > 1 ? 0.85 : 0.6) * needs.reduce((a, b) => a + b, 0));
+  const slack = 1.5 - difficulty * 0.35;
+  const moves = Math.max(tutorial ? 14 : 8, Math.round(need * slack + 4));
 
   // to'siqlar o'zi qiyinlik qo'shadi — shakllar biroz yengilroq bo'ladi
   const obsTotal = obstacles.ice + obstacles.chain + obstacles.stone + obstacles.gem;
-  const shapeDifficulty = obsTotal > 0 || build ? difficulty * 0.75 : difficulty;
+  const obsKinds = ['ice', 'chain', 'stone', 'gem'].filter((k) => obstacles[k] > 0).length;
+  const shapeDifficulty = obsKinds > 1 ? difficulty * 0.6 : obsTotal > 0 || build ? difficulty * 0.72 : difficulty;
   return {
     index, num, boss: boss || eternalBoss, shapeDifficulty, city: city ? city.id : 'eternal', cityIdx,
     difficulty, fairness, pool, goals, moves,

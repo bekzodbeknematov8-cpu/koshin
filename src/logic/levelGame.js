@@ -16,12 +16,13 @@ function gemDecorator(chance) {
   };
 }
 
-export function createLevelGame(level) {
+export function createLevelGame(level, { bonusMoves = 0 } = {}) {
   const opts = { difficulty: level.shapeDifficulty ?? level.difficulty, fairness: level.fairness, pool: level.pool };
   if (level.gemChance) opts.decorateTray = gemDecorator(level.gemChance);
   const g = createGame(level.seed, opts);
   g.level = level;
-  g.movesLeft = level.moves;
+  g.movesLeft = level.moves + bonusMoves;
+  g.helpBonus = bonusMoves; // yordam yurishlari yulduzlarga ta'sir qilmaydi
   const ob = level.obstacles || {};
   const hasObs = (ob.ice || 0) + (ob.chain || 0) + (ob.stone || 0) + (ob.gem || 0) > 0 || level.gemChance > 0;
   if (level.build) setTarget(g, buildingMask(level.build));
@@ -65,7 +66,7 @@ export function levelPlace(g, trayIndex, row, col) {
 export function updateStatus(g) {
   if (goalsMet(g)) {
     g.status = 'won';
-    g.stars = starsFor(g.level, true, g.movesLeft);
+    g.stars = starsFor(g.level, true, Math.max(0, g.movesLeft - (g.helpBonus || 0)));
     g.over = true;
   } else if (g.movesLeft <= 0) {
     g.status = 'lost'; g.lostReason = 'moves'; g.over = true;

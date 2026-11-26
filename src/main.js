@@ -4,7 +4,7 @@ import { backgroundCanvas } from './render/background.js';
 import { createGame } from './logic/game.js';
 import { createMapScreen } from './ui/mapScreen.js';
 import { createLevelScreen } from './ui/levelMode.js';
-import { createProgress, recordResult, sanitizeProgress } from './logic/progress.js';
+import { createProgress, recordResult, recordFail, helpMoves, sanitizeProgress } from './logic/progress.js';
 import { sanitizeWallet, addCoins, levelReward, endlessReward } from './logic/powerups.js';
 import { pickLanguage, setLanguage, t } from './i18n.js';
 import { createSound } from './audio/sound.js';
@@ -234,6 +234,8 @@ function openLevel(index) {
       if (g.level.boss && !prevStars) ev.push({ type: 'bosses', n: 1 });
       record(ev);
     },
+    onLose: (i) => { recordFail(progress, i); save('koshin.progress', progress); },
+    bonusMoves: () => helpMoves(progress, index),
     onNext: (i) => app.ads.levelBreak(() => openLevel(i)),
     onLeave: (go) => app.ads.levelBreak(go),
     onDouble: (g) => {
