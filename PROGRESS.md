@@ -1,6 +1,6 @@
 # Koshin — rivojlanish jurnali
 
-Ishlayapti: 2026-11-26 05:29 UTC
+Ishlayapti: yo'q
 
 Keyingi bosqich: **hammasi tugadi** — endi foydalanuvchi sinovi va takliflar (pastdagi "Ochiq xatolar" ro'yxati)
 
@@ -101,3 +101,7 @@ Keyingi bosqich: **hammasi tugadi** — endi foydalanuvchi sinovi va takliflar (
 - Tuzatilgan xatolar: (1) Cheksiz rejimda o'yin tugagach "ortga" tugmasi ishlamasdi (faqat ↻ bor edi) → endi ishlaydi; (2) kichik ekranda menyudagi "Sarguzasht" yozuvi pastki tugmalarga tegib qolardi → tugmalar ekran balandligiga qarab kichrayadi; (3) tutun testi ekran o'lchamiga bog'liq koordinata ishlatardi → tuzatildi.
 - `DEPLOY.md` — GitHub Pages'ni yoqish (Settings → Pages → main / root), telefonda ochish va o'rnatish, yangilash, Google Play (TWA/Bubblewrap) yo'li. `README.md` — o'zingiz sinab ko'rish uchun 13 bandlik ro'yxat. `.nojekyll` qo'shildi.
 - Testlar: 91/91 (mantiq) + tutun + E2E.
+
+### 2026-11-26 — avtomatik tekshiruv
+- Hamma 11 bosqich tugagan, ochiq xatolar ro'yxati bo'sh — yangi ish boshlanmadi.
+- Umumiy test: `npm test` 91/91, `tools/smoke.mjs` OK, `tools/e2e.mjs` OK.
