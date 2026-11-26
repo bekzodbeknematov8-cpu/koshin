@@ -67,6 +67,17 @@ export function drawIcon(ctx, icon, x, y, s, color = '#1b2457') {
       ctx.beginPath(); ctx.moveTo(x - s * 0.25, y - s * 0.35); ctx.lineTo(x + s * 0.4, y); ctx.lineTo(x - s * 0.25, y + s * 0.35); ctx.closePath(); ctx.fill();
       break;
     }
+    case 'wheel': {
+      // charxpalak: 8 bo'lakli g'ildirak + ko'rsatkich
+      ctx.lineWidth = s * 0.16;
+      ctx.beginPath(); ctx.arc(x, y + s * 0.08, s * 0.78, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < 8; i += 2) {
+        const a = (i * Math.PI) / 4;
+        ctx.beginPath(); ctx.moveTo(x, y + s * 0.08); ctx.arc(x, y + s * 0.08, s * 0.7, a, a + Math.PI / 4); ctx.closePath(); ctx.fill();
+      }
+      ctx.beginPath(); ctx.moveTo(x - s * 0.22, y - s * 0.95); ctx.lineTo(x + s * 0.22, y - s * 0.95); ctx.lineTo(x, y - s * 0.55); ctx.closePath(); ctx.fill();
+      break;
+    }
     case 'infinity':
       ctx.lineWidth = s * 0.25;
       ctx.beginPath();

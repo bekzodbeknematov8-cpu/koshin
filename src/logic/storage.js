@@ -5,7 +5,7 @@ import { createObsGrid } from './obstacles.js';
 
 export const SAVE_VERSION = 1;
 export const PREFIX = 'koshin.';
-export const KEYS = ['settings', 'progress', 'best', 'wallet', 'daily', 'stats', 'achievements', 'quests', 'login', 'endlessGame'];
+export const KEYS = ['settings', 'progress', 'best', 'wallet', 'daily', 'stats', 'achievements', 'quests', 'login', 'endlessGame', 'ads', 'wheel'];
 
 export function createStore(backend) {
   const mem = {};

@@ -36,6 +36,8 @@ export function createMenu(app, opts) {
       { id: 'quests', icon: 'list', x: w / 2 - 100, y: h * 0.78, r: 26 * k, label: 'menu.quests', badge: opts.badges.quests },
       { id: 'achievements', icon: 'trophy', x: w / 2, y: h * 0.78, r: 26 * k, label: 'menu.achievements' },
       { id: 'settings', icon: 'gear', x: w / 2 + 100, y: h * 0.78, r: 26 * k, label: 'menu.settings' },
+      ...(opts.on.wheel ? [{ id: 'wheel', icon: 'wheel', x: w / 2 - 60, y: h * 0.9, r: 24 * k, label: 'menu.wheel', badge: opts.badges.wheel, fill: '#1aa3a3', fg: '#fff2cf' }] : []),
+      ...(opts.on.freeCoins ? [{ id: 'freeCoins', icon: 'ad', x: w / 2 + 60, y: h * 0.9, r: 24 * k, label: 'menu.freeCoins', badge: opts.badges.freeCoins, fill: '#1aa3a3', fg: '#fff2cf' }] : []),
     ];
   };
   return {
@@ -61,7 +63,7 @@ export function createMenu(app, opts) {
       drawCoin(ctx, w - 30 - ctx.measureText(coins).width, 28, 11);
       for (const b of items()) {
         const pulse = b.id === 'play' ? 1 + 0.04 * Math.sin(now / 300) : 1;
-        drawRoundButton(ctx, b.x, b.y, b.r * pulse, b.icon, { badge: b.badge && b.badge() });
+        drawRoundButton(ctx, b.x, b.y, b.r * pulse, b.icon, { badge: b.badge && b.badge(), fill: b.fill, fg: b.fg });
         ctx.fillStyle = UI.text; ctx.font = `bold ${b.id === 'play' ? 18 : 13}px ${FONT}`; ctx.textAlign = 'center';
         ctx.fillText(t(b.label), b.x, b.y + b.r + 14);
       }

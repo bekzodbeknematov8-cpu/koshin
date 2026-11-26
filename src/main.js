@@ -17,6 +17,11 @@ import { drawRoundButton, hit } from './ui/widgets.js';
 import { createDailyHub } from './ui/dailyMode.js';
 import { sanitizeDailyState, canStart, rollDay, dayNumber } from './logic/daily.js';
 import { submitScore } from './net/leaderboard.js';
+import { createAdManager } from './ads/adManager.js';
+import { sanitizeAdState, FREE_COINS } from './logic/ads.js';
+import { sanitizeWheelState, canSpinFree } from './logic/wheel.js';
+import { reviveGame } from './logic/revive.js';
+import { createWheelScreen } from './ui/wheelScreen.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -35,8 +40,8 @@ const app = {
   audio: null,
   toast(text, icon = 'trophy') { toasts.push({ text, icon, t: performance.now() }); requestFrame(); },
   settings: {},
-  // Reklama uchun joy: hozircha darhol mukofot beradi (haqiqiy SDK keyin ulanadi).
-  ads: { showRewarded(placement, onReward) { onReward(); } },
+  ads: null, // createAdManager (pastda)
+  adOverlay: null, // demo reklama oynasi
   setScene(s) {
     app.scene = s;
     if (s.layout) s.layout(app.w, app.h);
@@ -77,10 +82,32 @@ function frame(now) {
   last = now;
   if (app.scene) {
     app.scene.draw(now, dt);
-    const toastOn = drawToasts(now);
+    if (app.adOverlay) drawAdOverlay(now);
+    const toastOn = drawToasts(now) || !!app.adOverlay;
     if ((app.scene.active && app.scene.active(now)) || toastOn) requestFrame();
     else last = 0;
   }
+}
+
+// Demo reklama oynasi (ADS_CONFIG.provider = 'demo'): haqiqiy reklama o'rnida sinov uchun.
+const AD_DEMO_MS = 3000;
+function drawAdOverlay(now) {
+  const o = app.adOverlay;
+  const left = Math.max(0, Math.ceil((AD_DEMO_MS - (now - o.t)) / 1000));
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.92)'; ctx.fillRect(0, 0, app.w, app.h);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = UI.gold; ctx.font = `bold 28px ${FONT}`;
+  ctx.fillText(t('ad.label') + (o.kind === 'reward' ? ' ▶' : ''), app.w / 2, app.h * 0.42);
+  ctx.fillStyle = UI.text; ctx.font = `bold 18px ${FONT}`;
+  ctx.fillText(left > 0 ? String(left) : t('ad.tapClose'), app.w / 2, app.h * 0.52);
+  ctx.restore();
+}
+function adOverlayTap() {
+  const o = app.adOverlay;
+  if (performance.now() - o.t < AD_DEMO_MS) return;
+  app.adOverlay = null;
+  o.done(true);
 }
 
 const pos = (e) => [e.clientX, e.clientY];
@@ -90,6 +117,7 @@ canvas.addEventListener('pointerdown', (e) => {
   activePointer = e.pointerId;
   try { canvas.setPointerCapture(e.pointerId); } catch {}
   if (app.audio && !app.audio.started) app.audio.unlock(); // ovozga ruxsat faqat teginishdan keyin
+  if (app.adOverlay) { adOverlayTap(); requestFrame(); return; }
   app.scene && app.scene.pointerDown && app.scene.pointerDown(...pos(e));
   requestFrame();
 });
@@ -158,6 +186,14 @@ const stats = sanitizeStats(load('koshin.stats', null));
 const unlocked = load('koshin.achievements', {}) || {};
 let quests = rollQuests(load('koshin.quests', null), dayNumber());
 const login = Object.assign(createLogin(), load('koshin.login', {}) || {});
+const adState = sanitizeAdState(load('koshin.ads', null));
+const wheelState = sanitizeWheelState(load('koshin.wheel', null));
+app.ads = createAdManager({
+  state: adState, save: () => save('koshin.ads', adState), day: dayNumber, audio,
+  onDemo: (o) => { app.adOverlay = { ...o, t: performance.now() }; requestFrame(); },
+});
+app.ads.init();
+const adFail = (why) => app.toast(t(why === 'limit' ? 'ad.limit' : 'ad.fail'), 'ad');
 const saveMeta = () => { save('koshin.stats', stats); save('koshin.achievements', unlocked); save('koshin.quests', quests); };
 
 // Hodisalarni statistika, topshiriqlar va yutuqlarga yo'naltirish
@@ -197,7 +233,18 @@ function openLevel(index) {
       if (g.level.boss && !prevStars) ev.push({ type: 'bosses', n: 1 });
       record(ev);
     },
-    onNext: (i) => openLevel(i),
+    onNext: (i) => app.ads.levelBreak(() => openLevel(i)),
+    onLeave: (go) => app.ads.levelBreak(go),
+    onDouble: (g) => {
+      if (!g.coinsEarned || g.doubled) return;
+      app.ads.showRewarded('double_coins', () => {
+        addCoins(wallet, g.coinsEarned); saveWallet();
+        g.coinsEarned *= 2; g.doubled = true;
+        app.sfx('coin'); app.requestFrame();
+      }, adFail);
+    },
+    canDouble: () => app.ads.canShow('double_coins'),
+    adFail,
     extraHooks: walletHooks,
   }));
 }
@@ -224,10 +271,20 @@ function openEndless() {
     onRestart() { store.remove('endlessGame'); },
     onOver(game) {
       store.remove('endlessGame');
-      addCoins(wallet, endlessReward(game.score)); saveWallet();
+      // ikkinchi imkoniyatdan keyin tanga faqat yangi ochko uchun
+      const coins = endlessReward(game.score) - endlessReward(game.paidScore || 0);
+      game.paidScore = game.score;
+      addCoins(wallet, coins); saveWallet();
       submitScore('endless', { score: game.score });
       record([{ type: 'endlessBest', max: game.score }]);
       app.sfx('lose');
+    },
+    canRevive: (game) => !game.revived && app.ads.canShow('revive'),
+    onRevive(game, done) {
+      app.ads.showRewarded('revive', () => {
+        const res = reviveGame(game);
+        if (res) { app.sfx('revive'); done(res); saveEndless(); }
+      }, adFail);
     },
     pointerDown(x, y) { if (hit(x, y, 30, 30, 24)) { saveEndless(); openMenu(); return true; } return false; },
     drawHUD(c) { drawRoundButton(c, 30, 30, 20, 'back', { fill: 'rgba(240,192,74,0.9)' }); },
@@ -275,6 +332,19 @@ function openQuests() {
   app.setScene(createQuestsScreen(app, { getQuests: () => quests, wallet, onClaim: () => { saveWallet(); saveMeta(); }, onBack: openMenu }));
 }
 
+function openWheel() {
+  app.setScene(createWheelScreen(app, {
+    getState: () => wheelState, saveState: () => save('koshin.wheel', wheelState), wallet, onWallet: saveWallet, day: dayNumber, onBack: openMenu,
+  }));
+}
+
+function freeCoins() {
+  app.ads.showRewarded('free_coins', () => {
+    addCoins(wallet, FREE_COINS); saveWallet();
+    app.sfx('coin'); app.toast('+' + FREE_COINS, 'coin');
+  }, adFail);
+}
+
 function openAchievements() {
   app.setScene(createAchievementsScreen(app, { getStats: () => stats, unlocked, onBack: openMenu }));
 }
@@ -295,8 +365,10 @@ const menu = createMenu(app, {
   badges: {
     daily: () => (canStart(rollDay(daily, dayNumber())) ? '!' : null),
     quests: () => { quests = rollQuests(quests, dayNumber()); const n = claimableCount(quests); return n || null; },
+    wheel: () => (canSpinFree(wheelState, dayNumber()) ? '!' : null),
+    freeCoins: () => (app.ads.canShow('free_coins') ? '+' + FREE_COINS : null),
   },
-  on: { play: () => openMap(), daily: () => openDaily(), endless: openEndless, quests: openQuests, achievements: openAchievements, settings: openSettings },
+  on: { play: () => openMap(), daily: () => openDaily(), endless: openEndless, quests: openQuests, achievements: openAchievements, settings: openSettings, wheel: openWheel, freeCoins },
 });
 openMenu();
 
@@ -317,7 +389,7 @@ window.__koshin = () => {
   return g ? { score: g.score, moves: g.moves, over: g.over, status: g.status } : { scene: app.scene === map ? 'map' : app.scene === menu ? 'menu' : 'other' };
 };
 window.__app = app;
-window.__open = { level: openLevel, endless: openEndless, map: openMap, daily: openDaily, menu: openMenu, settings: openSettings, quests: openQuests, achievements: openAchievements };
+window.__open = { level: openLevel, endless: openEndless, map: openMap, daily: openDaily, menu: openMenu, settings: openSettings, quests: openQuests, achievements: openAchievements, wheel: openWheel };
 
 // PWA: internetsiz ishlash uchun service worker
 if ('serviceWorker' in navigator && /^https?:/.test(location.protocol) && !window.__noSW) {

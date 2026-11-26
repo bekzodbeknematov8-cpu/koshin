@@ -19,8 +19,8 @@ Keyingi bosqich: **hammasi tugadi** — endi foydalanuvchi sinovi va takliflar (
 
 ## Ochiq xatolar / foydalanuvchi takliflari
 Foydalanuvchi so'rovi (2026-11-26): "yanada yaxshila" — grafika, balans, yangi imkoniyatlar, ovoz, reklama orqali daromad. Muhimlik bo'yicha:
-- [ ] 1. Reklama tizimi: rewarded (yurish, x2 tanga, bepul kuchaytirgich, Cheksizda "ikkinchi imkoniyat", bepul tanga) + cheklangan interstitial; AdSense H5 / AdMob ulash joyi; `ADS.md` yo'riqnoma
-- [ ] 2. Omad charxpalagi: kuniga 1 bepul aylantirish, reklama bilan yana
+- [x] 1. Reklama tizimi: rewarded (yurish, x2 tanga, bepul kuchaytirgich, Cheksizda "ikkinchi imkoniyat", bepul tanga) + cheklangan interstitial; AdSense H5 / AdMob ulash joyi; `ADS.md` yo'riqnoma
+- [x] 2. Omad charxpalagi: kuniga 1 bepul aylantirish, reklama bilan yana
 - [ ] 3. Grafika: tozalash nuri, to'lqin halqasi, ochko uchishi, "perfect" chaqnashi
 - [ ] 4. Ovoz: har shaharga o'z kuyi, yangi effektlar
 - [ ] 5. Balans: bosqich qiyinligi va mukofotlarni ko'rib chiqish
@@ -110,3 +110,11 @@ Foydalanuvchi so'rovi (2026-11-26): "yanada yaxshila" — grafika, balans, yangi
 ### 2026-11-26 — avtomatik tekshiruv
 - Hamma 11 bosqich tugagan, ochiq xatolar ro'yxati bo'sh — yangi ish boshlanmadi.
 - Umumiy test: `npm test` 91/91, `tools/smoke.mjs` OK, `tools/e2e.mjs` OK. (oxirgi: 15:30 UTC)
+
+### 2026-11-26 — Yaxshilash 1–2: reklama tizimi va Omad charxi
+- `src/logic/ads.js` — reklama siyosati (kunlik chegaralar, oraliq reklama: 6-bosqichdan keyin, har 3 bosqichda, 3 daqiqa oraliq, mukofotlidan keyin 2 daqiqa tinch, `noAds`).
+- `src/ads/adManager.js` + `src/ads/config.js` — provayderlar: AdMob (Capacitor), AdSense H5 Games Ads, demo, yo'q. Yo'riqnoma: `ADS.md`.
+- Yangi mukofotli joylar: g'alabada x2 tanga, Cheksizda "Ikkinchi imkoniyat" (`src/logic/revive.js`), menyuda "Bepul tanga" (+25), charxda qo'shimcha aylantirish. Bosqichlar orasida oraliq reklama.
+- `src/logic/wheel.js` + `src/ui/wheelScreen.js` — Omad charxi (8 bo'lak, kuniga 1 bepul).
+- Tuzatildi: ikkinchi imkoniyatdan keyin Cheksizda tanga ikki marta berilmaydi (faqat yangi ochko uchun).
+- Testlar: 99/99 (+8 yangi), smoke OK, E2E OK (+8 yangi tekshiruv: charx, bepul tanga, ikkinchi imkoniyat, demo reklama).

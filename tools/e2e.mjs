@@ -122,6 +122,68 @@ check(lang === "Qo'qon", 'til O\'zbekchaga o\'zgardi');
 const savedLang = await page.evaluate(() => JSON.parse(localStorage.getItem('koshin.settings')).lang);
 check(savedLang === 'uz', 'til saqlandi');
 
+// Omad charxi: bepul aylantirish → sovg'a hamyonga tushadi, ikkinchisi reklama bilan
+await page.setViewportSize({ width: 390, height: 844 });
+await page.evaluate(() => window.__open.wheel());
+await page.waitForTimeout(150);
+const w0 = await page.evaluate(() => JSON.parse(localStorage.getItem('koshin.wallet') || 'null'));
+const sb = await page.evaluate(() => { const R = Math.min(390 * 0.42, 844 * 0.3, 190); return { x: 195, y: 844 * 0.42 + R + 80 }; });
+await page.mouse.click(sb.x, sb.y);
+await page.waitForTimeout(200);
+check(await page.evaluate(() => window.__app.scene.spinning), 'charx aylanyapti');
+await page.waitForTimeout(4600);
+const w1 = await page.evaluate(() => JSON.parse(localStorage.getItem('koshin.wallet')));
+const sum = (w) => (w ? w.coins + Object.values(w.inv).reduce((a, b) => a + b, 0) : 0);
+check(sum(w1) > sum(w0), 'charx sovg\'asi hamyonga tushdi');
+check(await page.evaluate(() => JSON.parse(localStorage.getItem('koshin.wheel')).freeUsed === true), 'bepul aylantirish sarflandi');
+await page.mouse.click(195, 400); // natijani yopish
+await page.waitForTimeout(600);
+await page.mouse.click(195, 400);
+await page.mouse.click(sb.x, sb.y); // reklama bilan
+await page.waitForTimeout(200);
+check(await page.evaluate(() => window.__app.scene.spinning), 'reklama bilan yana aylantirildi');
+await page.waitForTimeout(4600);
+
+// Bepul tanga (reklama): menyudan
+await page.evaluate(() => window.__open.menu());
+await page.waitForTimeout(100);
+const c0 = await page.evaluate(() => JSON.parse(localStorage.getItem('koshin.wallet')).coins);
+await page.mouse.click(195 + 60, 844 * 0.9);
+await page.waitForTimeout(100);
+const c1 = await page.evaluate(() => JSON.parse(localStorage.getItem('koshin.wallet')).coins);
+check(c1 === c0 + 25, 'bepul tanga +25');
+
+// Cheksiz: o'yin tugadi → ikkinchi imkoniyat
+await page.evaluate(() => window.__open.endless());
+await page.waitForTimeout(100);
+await page.evaluate(() => {
+  const s = window.__app.scene; s.restart(); const g = s.game;
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) g.board[r][c] = (r * 3 + c) % 4 === 0 ? -1 : 1;
+  g.tray = [{ id: 'sq3', cells: [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]], color: 2 }, null, null];
+  g.over = true; window.__app.requestFrame();
+});
+await page.waitForTimeout(800);
+await page.mouse.click(195 + 60, 844 * 0.62);
+await page.waitForTimeout(150);
+const rv = await page.evaluate(() => ({ over: window.__app.scene.game.over, revived: window.__app.scene.game.revived }));
+check(!rv.over && rv.revived, 'ikkinchi imkoniyat: o\'yin davom etdi');
+
+// Demo reklama oynasi: ko'rsatiladi va 3 soniyadan keyin yopiladi
+await page.evaluate(async () => {
+  const { createAdManager } = await import('./src/ads/adManager.js');
+  const { createAdState } = await import('./src/logic/ads.js');
+  const m = createAdManager({ state: createAdState(), save() {}, day: () => 1, config: { provider: 'demo', h5: {}, admob: {}, grantWhenUnavailable: true },
+    onDemo: (o) => { window.__app.adOverlay = { ...o, t: performance.now() }; window.__app.requestFrame(); } });
+  m.init(); window.__demoGot = false;
+  m.showRewarded('free_coins', () => { window.__demoGot = true; });
+});
+await page.waitForTimeout(300);
+await page.mouse.click(195, 400);
+check(!(await page.evaluate(() => window.__demoGot)), 'demo reklama: vaqtidan oldin yopilmaydi');
+await page.waitForTimeout(3000);
+await page.mouse.click(195, 400);
+check(await page.evaluate(() => window.__demoGot && !window.__app.adOverlay), 'demo reklama: ko\'rilgandan keyin mukofot');
+
 // Kichik ekran (iPhone SE): hamma narsa sig'adi
 await page.setViewportSize({ width: 320, height: 568 });
 await page.evaluate(() => window.__open.level(30));

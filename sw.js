@@ -1,6 +1,6 @@
 // Service worker: o'yin internetsiz ishlashi uchun barcha fayllar keshlanadi (cache-first).
 // FILES va VERSION ni tools/build-sw.mjs avtomatik yangilaydi.
-const VERSION = 'f481f1aa48';
+const VERSION = '9f5f6c6b45';
 const CACHE = 'koshin-' + VERSION;
 const FILES = [
   './icons/icon-192.png',
@@ -8,11 +8,14 @@ const FILES = [
   './icons/maskable-512.png',
   './index.html',
   './manifest.webmanifest',
+  './src/ads/adManager.js',
+  './src/ads/config.js',
   './src/audio/sound.js',
   './src/audio/synth.js',
   './src/fx/ease.js',
   './src/fx/particles.js',
   './src/i18n.js',
+  './src/logic/ads.js',
   './src/logic/board.js',
   './src/logic/bot.js',
   './src/logic/buildings.js',
@@ -25,9 +28,11 @@ const FILES = [
   './src/logic/obstacles.js',
   './src/logic/powerups.js',
   './src/logic/progress.js',
+  './src/logic/revive.js',
   './src/logic/score.js',
   './src/logic/shapes.js',
   './src/logic/storage.js',
+  './src/logic/wheel.js',
   './src/main.js',
   './src/net/leaderboard.js',
   './src/render/background.js',
@@ -40,6 +45,7 @@ const FILES = [
   './src/ui/mapLayout.js',
   './src/ui/mapScreen.js',
   './src/ui/menuScreens.js',
+  './src/ui/wheelScreen.js',
   './src/ui/widgets.js',
 ];
 

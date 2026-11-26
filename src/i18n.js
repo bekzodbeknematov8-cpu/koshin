@@ -136,3 +136,9 @@ addStrings('tr', {
 });
 
 export const LANG_NAMES = { en: 'English', uz: "O'zbekcha", ru: 'Русский', tr: 'Türkçe' };
+
+// Charxpalak va reklama matnlari
+addStrings('en', { 'menu.wheel': 'Lucky Wheel', 'menu.freeCoins': 'Free coins', 'ad.limit': 'No more ads today', 'ad.fail': 'Ad unavailable, try later', 'ad.label': 'Ad', 'ad.tapClose': 'Tap to continue', 'wheel.free': 'Free spin!', 'wheel.again': 'Spin again', 'wheel.tomorrow': 'Come back tomorrow', 'over.revive': 'Second chance' });
+addStrings('uz', { 'menu.wheel': 'Omad charxi', 'menu.freeCoins': 'Bepul tanga', 'ad.limit': 'Bugungi reklamalar tugadi', 'ad.fail': "Reklama yo'q, keyinroq urinib ko'ring", 'ad.label': 'Reklama', 'ad.tapClose': 'Davom etish uchun bosing', 'wheel.free': 'Bepul aylantirish!', 'wheel.again': 'Yana aylantirish', 'wheel.tomorrow': 'Ertaga qayting', 'over.revive': 'Ikkinchi imkoniyat' });
+addStrings('ru', { 'menu.wheel': 'Колесо удачи', 'menu.freeCoins': 'Монеты', 'ad.limit': 'Реклама на сегодня закончилась', 'ad.fail': 'Реклама недоступна, попробуйте позже', 'ad.label': 'Реклама', 'ad.tapClose': 'Нажмите, чтобы продолжить', 'wheel.free': 'Бесплатный спин!', 'wheel.again': 'Ещё раз', 'wheel.tomorrow': 'Возвращайтесь завтра', 'over.revive': 'Второй шанс' });
+addStrings('tr', { 'menu.wheel': 'Şans Çarkı', 'menu.freeCoins': 'Bedava altın', 'ad.limit': 'Bugünlük reklam bitti', 'ad.fail': 'Reklam yok, sonra deneyin', 'ad.label': 'Reklam', 'ad.tapClose': 'Devam için dokun', 'wheel.free': 'Bedava çevir!', 'wheel.again': 'Tekrar çevir', 'wheel.tomorrow': 'Yarın gel', 'over.revive': 'İkinci şans' });

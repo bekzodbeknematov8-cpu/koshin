@@ -23,13 +23,19 @@ export function goalIcon(ctx, type, x, y, s) {
 }
 goalIcon.extra = {};
 
-export function createLevelScreen(app, index, { onExit, onWin, onNext, extraHooks = {} }) {
+export function createLevelScreen(app, index, { onExit, onWin, onNext, onLeave, onDouble, canDouble, adFail, extraHooks = {} }) {
+  const leave = (go) => (onLeave ? onLeave(go) : go());
   const level = generateLevel(index);
   goalIcon.dpr = app.dpr;
   let screen;
   const overButtons = (L, g) => {
     const cy = L.h * 0.62;
-    if (g.status === 'won') return [{ id: 'map', icon: 'map', x: L.w / 2 - 70, y: cy }, { id: 'next', icon: 'play', x: L.w / 2 + 70, y: cy }];
+    if (g.status === 'won') {
+      const list = [{ id: 'map', icon: 'map', x: L.w / 2 - 70, y: cy }, { id: 'next', icon: 'play', x: L.w / 2 + 70, y: cy }];
+      // "x2 tanga" (reklama) — tangalar yozuvi yonida
+      if (onDouble && g.coinsEarned && !g.doubled && (!canDouble || canDouble())) list.unshift({ id: 'double', icon: 'ad', x: L.w / 2 + 72, y: cy - 52, r: 17, badge: 'x2', fill: '#1aa3a3', fg: '#fff2cf' });
+      return list;
+    }
     const list = [{ id: 'map', icon: 'map', x: L.w / 2 - 90, y: cy }, { id: 'retry', icon: 'retry', x: L.w / 2, y: cy }];
     if (!g.continued) list.push({ id: 'ad', icon: 'ad', x: L.w / 2 + 90, y: cy, badge: '+5' });
     return list;
@@ -104,11 +110,11 @@ export function createLevelScreen(app, index, { onExit, onWin, onNext, extraHook
           ctx.restore();
         }
         ctx.fillStyle = UI.text; ctx.font = `bold 40px ${FONT}`;
-        ctx.fillText(String(g.score), L.w / 2, py + 150);
+        ctx.fillText(String(g.score), L.w / 2, py + 138);
         if (g.coinsEarned) {
-          drawCoin(ctx, L.w / 2 - 24, py + 205, 12);
+          drawCoin(ctx, L.w / 2 - 24, py + 178, 12);
           ctx.fillStyle = UI.gold; ctx.font = `bold 22px ${FONT}`; ctx.textAlign = 'left';
-          ctx.fillText('+' + g.coinsEarned, L.w / 2 - 6, py + 206);
+          ctx.fillText('+' + g.coinsEarned, L.w / 2 - 6, py + 179);
           ctx.textAlign = 'center';
         }
       } else {
@@ -124,19 +130,24 @@ export function createLevelScreen(app, index, { onExit, onWin, onNext, extraHook
         });
         if (g.lostReason === 'moves') { ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.arc(L.w / 2, py + 185, 16, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = `bold 16px ${FONT}`; ctx.fillText('0', L.w / 2, py + 186); }
       }
-      for (const b of overButtons(L, g)) drawRoundButton(ctx, b.x, b.y, 32, b.icon, { badge: b.badge });
+      for (const b of overButtons(L, g)) {
+        const pulse = b.id === 'double' ? 1 + 0.07 * Math.sin(performance.now() / 160) : 1;
+        drawRoundButton(ctx, b.x, b.y, (b.r || 32) * pulse, b.icon, { badge: b.badge, fill: b.fill, fg: b.fg });
+      }
       ctx.restore();
     },
     onOverTap(x, y, L, g) {
       for (const b of overButtons(L, g)) {
-        if (!hit(x, y, b.x, b.y, 36)) continue;
-        if (b.id === 'map') onExit();
+        if (!hit(x, y, b.x, b.y, (b.r || 32) + 4)) continue;
+        if (b.id === 'map') leave(onExit);
         else if (b.id === 'next') onNext(index + 1);
-        else if (b.id === 'retry') screen.restart();
+        else if (b.id === 'retry') leave(() => screen.restart());
+        else if (b.id === 'double') onDouble(g);
         else if (b.id === 'ad') {
-          const grant = () => { continueLevel(g, 5); app.requestFrame(); };
-          if (app.ads && app.ads.showRewarded) app.ads.showRewarded('extra_moves', grant); else grant();
+          const grant = () => { continueLevel(g, 5); app.sfx('revive'); app.requestFrame(); };
+          if (app.ads && app.ads.showRewarded) app.ads.showRewarded('extra_moves', grant, adFail); else grant();
         }
+        return;
       }
     },
   };

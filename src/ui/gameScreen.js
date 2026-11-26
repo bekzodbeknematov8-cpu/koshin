@@ -10,6 +10,7 @@ import { UI, FONT } from '../render/palette.js';
 import { createParticles, burst, stepParticles, trimParticles } from '../fx/particles.js';
 import { easeOutBack, easeOutCubic, approach, clamp01 } from '../fx/ease.js';
 import { drawCoin, drawRoundButton, hit } from './widgets.js';
+import { t } from '../i18n.js';
 import { POWERUPS, BOARD_TARGET, canUse, consume, applyPowerup, PRICES } from '../logic/powerups.js';
 
 export function createGameScreen(app, hooks = {}) {
@@ -379,7 +380,14 @@ export function createGameScreen(app, hooks = {}) {
     drawCrown(ctx, w / 2 - 50, h * 0.4 + 36, 18);
     ctx.font = `bold 20px ${FONT}`;
     ctx.fillText(String(best), w / 2 + 10, h * 0.4 + 46);
-    drawRestartButton(ctx, w / 2, h * 0.62, 38);
+    const rv = reviveOn();
+    drawRestartButton(ctx, w / 2 - (rv ? 60 : 0), h * 0.62, 38);
+    if (rv) {
+      const pulse = 1 + 0.06 * Math.sin(now / 170);
+      drawRoundButton(ctx, w / 2 + 60, h * 0.62, 38 * pulse, 'ad', { fill: '#1aa3a3', fg: '#fff2cf', badge: '↺' });
+      ctx.fillStyle = UI.text; ctx.font = `bold 14px ${FONT}`;
+      ctx.fillText(t('over.revive'), w / 2 + 60, h * 0.62 + 56);
+    }
     ctx.restore();
   }
 
@@ -419,8 +427,12 @@ export function createGameScreen(app, hooks = {}) {
     return i >= 0 && i < 3 && game.tray[i] ? i : -1;
   }
 
+  const reviveOn = () => !!(hooks.canRevive && hooks.onRevive && hooks.canRevive(game));
   function restartHit(x, y) {
-    return Math.hypot(x - L.w / 2, y - L.h * 0.62) < 50;
+    return Math.hypot(x - L.w / 2 + (reviveOn() ? 60 : 0), y - L.h * 0.62) < (reviveOn() ? 44 : 50);
+  }
+  function reviveHit(x, y) {
+    return reviveOn() && Math.hypot(x - L.w / 2 - 60, y - L.h * 0.62) < 44;
   }
 
   const screen = {
@@ -436,7 +448,16 @@ export function createGameScreen(app, hooks = {}) {
     pointerDown(x, y) {
       if (game.over) {
         if (hooks.onOverTap) { if (performance.now() - overAt > 300) hooks.onOverTap(x, y, L, game); return; }
-        if (restartHit(x, y) && performance.now() - overAt > 300) screen.restart();
+        if (performance.now() - overAt < 300) return;
+        if (reviveHit(x, y)) {
+          const g0 = game;
+          hooks.onRevive(game, (res) => {
+            if (game !== g0) return;
+            screen.fxClear(res.cleared);
+            texts.push({ text: '↺', x: L.w / 2, y: L.by + L.boardPx / 2, size: 64, t: performance.now(), dur: 900, color: UI.turq });
+            app.requestFrame();
+          });
+        } else if (restartHit(x, y)) screen.restart();
         else if (hooks.pointerDown) hooks.pointerDown(x, y, L, game); // masalan, ortga tugmasi
         return;
       }

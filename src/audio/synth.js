@@ -78,6 +78,10 @@ export const SFX = {
   rotate: [{ step: 4, t: 0, dur: 0.3 }, { step: 7, t: 0.05, dur: 0.3 }],
   swap: [{ step: 7, t: 0, dur: 0.3 }, { step: 4, t: 0.05, dur: 0.3 }],
   button: [{ step: 7, t: 0, b: 0.3, dur: 0.2 }],
+  tick: [{ drum: 'tak', t: 0 }],
+  prize: [{ step: 7, t: 0, b: 0.9 }, { step: 9, t: 0.08, b: 0.9 }, { step: 11, t: 0.16, b: 0.9 }, { step: 14, t: 0.24, b: 0.9, dur: 1.1 }, { drum: 'dum', t: 0 }, { drum: 'tak', t: 0.24 }],
+  star: [{ step: 11, t: 0, b: 0.95, dur: 0.5 }, { step: 14, t: 0.05, b: 0.95, dur: 0.6 }],
+  revive: [{ step: 0, t: 0, oct: -1 }, { step: 4, t: 0.1 }, { step: 7, t: 0.2 }, { step: 11, t: 0.3, dur: 1 }],
   coin: [{ step: 11, t: 0, b: 0.9, dur: 0.3 }, { step: 14, t: 0.07, b: 0.9, dur: 0.4 }],
 };
 
