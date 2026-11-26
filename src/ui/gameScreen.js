@@ -23,6 +23,10 @@ export function createGameScreen(app, hooks = {}) {
   let shrink = [];       // tozalanayotgan kataklar
   let texts = [];        // combo yozuvlari
   let shake = 0;
+  let beams = [];        // tozalangan qator/ustun nuri
+  let rings = [];        // to'lqin halqasi
+  let flash = 0;         // "perfect" chaqnashi (1 → 0)
+  let trayIn = 0, trayRef = null; // yangi shakllar kirib kelishi
   let shownScore = 0;
   let overAt = 0;
   const ps = createParticles(Date.now() & 0xffff);
@@ -293,6 +297,33 @@ export function createGameScreen(app, hooks = {}) {
       ctx.globalAlpha = 1;
     }
 
+    // tozalash nurlari: oltin chiziq kengayib, so'nadi
+    beams = beams.filter((b) => now - b.t < 420);
+    for (const b of beams) {
+      const k = (now - b.t) / 420;
+      const thick = cell * (0.35 + 0.9 * easeOutCubic(k));
+      ctx.globalAlpha = (1 - k) * 0.85;
+      ctx.fillStyle = k < 0.25 ? '#fff6d0' : UI.gold;
+      if (b.row !== undefined) ctx.fillRect(bx - 6, by + (b.row + 0.5) * cell - thick / 2, L.boardPx + 12, thick);
+      else ctx.fillRect(bx + (b.col + 0.5) * cell - thick / 2, by - 6, thick, L.boardPx + 12);
+    }
+    ctx.globalAlpha = 1;
+    // to'lqin halqasi
+    rings = rings.filter((r) => now - r.t < 520);
+    for (const r of rings) {
+      const k = (now - r.t) / 520;
+      ctx.globalAlpha = (1 - k) * 0.9;
+      ctx.strokeStyle = r.color || UI.gold;
+      ctx.lineWidth = 6 * (1 - k) + 1;
+      ctx.beginPath(); ctx.arc(r.x, r.y, r.r0 + (r.r1 - r.r0) * easeOutCubic(k), 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // yangi shakllar to'plami: pastdan sakrab kiradi
+    if (!trayRef) trayRef = game.tray;
+    else if (trayRef !== game.tray) { trayRef = game.tray; trayIn = now; } // almashtirish/qayta boshlash
+    const trayK = clamp01((now - trayIn) / 380);
+
     // tray
     game.tray.forEach((p, i) => {
       if (!p || (drag && drag.index === i) || returning.some((r) => r.index === i)) return;
@@ -300,7 +331,15 @@ export function createGameScreen(app, hooks = {}) {
       const o = slotOrigin(i, p, s);
       const fits = hooks.fits ? hooks.fits(game, p) : true;
       ctx.globalAlpha = fits ? 1 : 0.35;
-      drawPiece(p, o.x, o.y, s);
+      if (trayK < 1) {
+        const ki = clamp01(trayK * 1.4 - i * 0.18);
+        const sc = Math.max(0.01, easeOutBack(ki, 2));
+        const { rows, cols } = shapeSize(p.cells);
+        const cx = o.x + (cols * s) / 2, cy = o.y + (rows * s) / 2;
+        ctx.save(); ctx.translate(cx, cy + (1 - ki) * 40); ctx.scale(sc, sc); ctx.translate(-cx, -cy);
+        drawPiece(p, o.x, o.y, s);
+        ctx.restore();
+      } else drawPiece(p, o.x, o.y, s);
       ctx.globalAlpha = 1;
     });
     returning = returning.filter((r) => now - r.t < 180);
@@ -358,6 +397,12 @@ export function createGameScreen(app, hooks = {}) {
       ctx.restore();
     }
 
+    if (flash > 0) {
+      ctx.fillStyle = `rgba(255,240,190,${flash * 0.45})`;
+      ctx.fillRect(0, 0, w, h);
+      flash = Math.max(0, flash - dt * 1.6);
+    }
+
     drawHUD(ctx, now);
 
     if (game.over && hooks.drawOver) { if (now >= overAt) hooks.drawOver(ctx, L, game, now - overAt); }
@@ -391,8 +436,28 @@ export function createGameScreen(app, hooks = {}) {
     ctx.restore();
   }
 
+  function lineFx(cleared, now) {
+    const rows = new Map(), cols = new Map();
+    for (const c of cleared) { rows.set(c.r, (rows.get(c.r) || 0) + 1); cols.set(c.c, (cols.get(c.c) || 0) + 1); }
+    let n = 0;
+    for (const [r, k] of rows) if (k >= N) { beams.push({ row: r, t: now + n * 40 }); n++; }
+    for (const [c, k] of cols) if (k >= N) { beams.push({ col: c, t: now + n * 40 }); n++; }
+    return n;
+  }
+
   function onPlaced(res, piece) {
     const now = performance.now();
+    const tray0 = trayRef;
+    if (res.lines) {
+      lineFx(res.cleared, now);
+      let sr = 0, sc = 0;
+      for (const [r, c] of res.placed) { sr += r; sc += c; }
+      const px = L.bx + (sc / res.placed.length + 0.5) * L.cell, py = L.by + (sr / res.placed.length + 0.5) * L.cell;
+      rings.push({ x: px, y: py, r0: L.cell * 0.5, r1: L.cell * (2.5 + res.lines), t: now });
+      if (res.lines > 1) rings.push({ x: px, y: py, r0: L.cell * 0.3, r1: L.cell * (1.6 + res.lines), t: now + 90, color: UI.turq });
+    }
+    if (res.perfect) flash = 1;
+    if (tray0 && game.tray !== tray0) { trayIn = now; trayRef = game.tray; } // yangi uchlik keldi
     for (const [r, c] of res.placed) pops.push({ r, c, t: now });
     for (const c of res.cleared) {
       shrink.push({ ...c, t: now });
@@ -442,7 +507,7 @@ export function createGameScreen(app, hooks = {}) {
     layout,
     draw,
     active(now) {
-      return !!drag || !!armed || (now - denied < 350) || returning.length || pops.length || shrink.length || texts.length || ps.list.length || shake > 0 ||
+      return !!drag || !!armed || beams.length || rings.length || flash > 0 || now - trayIn < 400 || (now - denied < 350) || returning.length || pops.length || shrink.length || texts.length || ps.list.length || shake > 0 ||
         Math.round(shownScore) !== game.score || (game.over && now - overAt < 1500) || (game.streak > 1) || (hooks.animating && hooks.animating(now));
     },
     pointerDown(x, y) {
@@ -516,7 +581,7 @@ export function createGameScreen(app, hooks = {}) {
     pointerCancel() { drag = null; },
     restart() {
       game = hooks.createGame ? hooks.createGame() : createGame(Date.now());
-      shownScore = 0; texts = []; pops = []; shrink = [];
+      shownScore = 0; texts = []; pops = []; shrink = []; beams = []; rings = []; flash = 0; trayIn = performance.now();
       if (hooks.onRestart) hooks.onRestart(game);
     },
     // kuchaytirgichlar va boshqa rejimlar uchun effektlar
