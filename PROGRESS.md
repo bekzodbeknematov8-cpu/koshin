@@ -1,6 +1,6 @@
 # Koshin — rivojlanish jurnali
 
-Ishlayapti: 2026-11-26 15:29 UTC
+Ishlayapti: yo'q
 
 Keyingi bosqich: **hammasi tugadi** — endi foydalanuvchi sinovi va takliflar (pastdagi "Ochiq xatolar" ro'yxati)
 
@@ -104,4 +104,4 @@ Keyingi bosqich: **hammasi tugadi** — endi foydalanuvchi sinovi va takliflar (
 
 ### 2026-11-26 — avtomatik tekshiruv
 - Hamma 11 bosqich tugagan, ochiq xatolar ro'yxati bo'sh — yangi ish boshlanmadi.
-- Umumiy test: `npm test` 91/91, `tools/smoke.mjs` OK, `tools/e2e.mjs` OK.
+- Umumiy test: `npm test` 91/91, `tools/smoke.mjs` OK, `tools/e2e.mjs` OK. (oxirgi: 15:30 UTC)
