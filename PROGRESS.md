@@ -1,6 +1,6 @@
 # Koshin — rivojlanish jurnali
 
-Ishlayapti: yo'q
+Ishlayapti: 2026-11-26 17:11 UTC
 
 Keyingi bosqich: **hammasi tugadi** — endi foydalanuvchi sinovi va takliflar (pastdagi "Ochiq xatolar" ro'yxati)
 
@@ -18,7 +18,12 @@ Keyingi bosqich: **hammasi tugadi** — endi foydalanuvchi sinovi va takliflar (
 - [x] 11. Yakuniy umumiy test, GitHub Pages'ga joylash yo'riqnomasi — 2026-11-25
 
 ## Ochiq xatolar / foydalanuvchi takliflari
-(hozircha yo'q)
+Foydalanuvchi so'rovi (2026-11-26): "yanada yaxshila" — grafika, balans, yangi imkoniyatlar, ovoz, reklama orqali daromad. Muhimlik bo'yicha:
+- [ ] 1. Reklama tizimi: rewarded (yurish, x2 tanga, bepul kuchaytirgich, Cheksizda "ikkinchi imkoniyat", bepul tanga) + cheklangan interstitial; AdSense H5 / AdMob ulash joyi; `ADS.md` yo'riqnoma
+- [ ] 2. Omad charxpalagi: kuniga 1 bepul aylantirish, reklama bilan yana
+- [ ] 3. Grafika: tozalash nuri, to'lqin halqasi, ochko uchishi, "perfect" chaqnashi
+- [ ] 4. Ovoz: har shaharga o'z kuyi, yangi effektlar
+- [ ] 5. Balans: bosqich qiyinligi va mukofotlarni ko'rib chiqish
 
 ## Hisobotlar
 
