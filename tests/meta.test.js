@@ -116,14 +116,53 @@ test('musiqa: har shahar o\'z kuyi, notalar lad ichida', async () => {
   const seen = new Set();
   for (const name of Object.keys(MUSIC_THEMES)) {
     const th = themeMusic(name);
-    assert.ok(th.melody.length > 20 && th.doiraPattern.length === 6);
-    assert.ok(th.beat > 0.2 && th.beat < 0.5);
+    assert.ok(th.melody.length >= 10 && th.melody.length <= 28, 'kam nota: ' + th.melody.length);
+    assert.ok(th.doiraPattern === null || th.doiraPattern.length === 6);
+    assert.ok(th.beat >= 0.36 && th.beat < 0.5, 'sokin temp');
+    assert.equal(th.chords.length, 8);
     seen.add(JSON.stringify(th.melody.map((n) => n.step)) + th.scale + th.base);
     for (const n of th.melody) { const m = sn(n.step, 0, th.scaleArr, th.base); assert.ok(m >= 55 && m <= 90, 'diapazon ' + m); }
   }
   assert.equal(seen.size, Object.keys(MUSIC_THEMES).length, 'hamma kuylar har xil');
   assert.equal(themeMusic('yoq').seed, MUSIC_THEMES.menu.seed);
   assert.equal(sn(2, 0, SCALES.major, 60), 64);
+});
+
+test('musiqa: tuzilgan kuy — motiv takrorlanadi, silliq, tonikada tugaydi', async () => {
+  const { composeMelody, PROGRESSIONS, MUSIC_THEMES, themeMusic } = await import('../src/audio/synth.js');
+  for (const name of Object.keys(MUSIC_THEMES)) {
+    const th = themeMusic(name);
+    const m = th.melody;
+    assert.deepEqual(m, composeMelody(th.seed, th.chords), 'deterministik');
+    const bars = Array.from({ length: 8 }, (_, b) => m.filter((n) => n.bar === b));
+    for (const b of bars) {
+      assert.ok(b.length >= 1 && b.length <= 3, 'taktda kam nota');
+      assert.equal(b[0].beat, 0, 'takt boshida nota');
+      for (let i = 1; i < b.length; i++) assert.ok(b[i - 1].beat + b[i - 1].len <= b[i].beat, 'ustma-ust emas');
+      const last = b[b.length - 1]; assert.ok(last.beat + last.len <= 6, 'takt ichida');
+    }
+    // A motivi ritmi 0, 2, 6-taktlarda bir xil (eslab qolinadi)
+    const rh = (b) => JSON.stringify(bars[b].map((n) => [n.beat, n.len]));
+    assert.equal(rh(0), rh(2)); assert.equal(rh(0), rh(6));
+    // oxirgi takt — bitta uzun nota, akkord asosida
+    assert.equal(bars[7].length, 1); assert.equal(bars[7][0].len, 6);
+    assert.equal(((bars[7][0].step % 7) + 7) % 7, th.chords[7] % 7);
+    // keskin sakrashlar yo'q
+    for (let i = 1; i < m.length; i++) assert.ok(Math.abs(m[i].step - m[i - 1].step) <= 4, name + ' sakrash');
+    for (const n of m) assert.ok(n.step >= 0 && n.step <= 10);
+  }
+  for (const p of PROGRESSIONS) { assert.equal(p[0], 0); assert.equal(p[7], 0); }
+});
+
+test('nay va pad tembrlari: toza, klik yo\'q', async () => {
+  const { flute, pad } = await import('../src/audio/synth.js');
+  const sr = 22050;
+  for (const f of [147, 294, 587]) for (const a of [flute(f, sr, 0.8), pad(f, sr, 1.5)]) {
+    let peak = 0;
+    for (const v of a) { assert.ok(Number.isFinite(v)); peak = Math.max(peak, Math.abs(v)); }
+    assert.ok(peak > 0.5 && peak <= 0.7001);
+    assert.ok(Math.abs(a[0]) < 0.02 && Math.abs(a[a.length - 1]) < 0.02, 'boshi/oxiri jim');
+  }
 });
 
 test('softTone: toza, chegaralangan, klik yo\'q (boshi va oxiri jim)', async () => {

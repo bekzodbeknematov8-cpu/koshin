@@ -23,32 +23,126 @@ export const SCALES = {
   minor: [0, 2, 3, 5, 7, 8, 10, 12],     // mayin
 };
 
-// Har ekran/shahar o'z kuyiga ega: seed, lad, tonika, temp (BEAT soniya), doira usuli.
+// Har ekran/shahar o'z kuyiga ega. Musiqa sokin bo'lishi shart (uzoq o'ynalganda asabga tegmasin):
+// sekin temp, kam nota, uzun notalar, yumshoq nay/qo'ng'iroqcha, akkord foni, doira juda past yoki yo'q.
+// prog — akkordlar ketma-ketligi indeksi, lead — bosh cholg'u.
 export const MUSIC_THEMES = {
-  menu:       { seed: 1405, scale: 'hijaz',    base: 62, beat: 0.32, doira: 0 },
-  khiva:      { seed: 1220, scale: 'dorian',   base: 62, beat: 0.30, doira: 0 },
-  bukhara:    { seed: 2111, scale: 'minor',    base: 60, beat: 0.34, doira: 1 },
-  samarkand:  { seed: 1370, scale: 'hijaz',    base: 64, beat: 0.30, doira: 0 },
-  shahrisabz: { seed: 4410, scale: 'major',    base: 62, beat: 0.28, doira: 2 },
-  tashkent:   { seed: 2930, scale: 'dorian',   base: 65, beat: 0.27, doira: 2 },
-  kokand:     { seed: 1709, scale: 'phrygian', base: 62, beat: 0.31, doira: 1 },
-  termez:     { seed: 3330, scale: 'minor',    base: 59, beat: 0.35, doira: 0 },
-  eternal:    { seed: 7777, scale: 'phrygian', base: 60, beat: 0.33, doira: 1 },
-  daily:      { seed: 5050, scale: 'major',    base: 64, beat: 0.29, doira: 2 },
+  menu:       { seed: 1405, scale: 'dorian',   base: 62, beat: 0.42, doira: -1, prog: 0, lead: 'flute' },
+  khiva:      { seed: 1220, scale: 'dorian',   base: 60, beat: 0.40, doira: -1, prog: 1, lead: 'bell' },
+  bukhara:    { seed: 2111, scale: 'minor',    base: 60, beat: 0.44, doira: 0,  prog: 2, lead: 'flute' },
+  samarkand:  { seed: 1370, scale: 'hijaz',    base: 62, beat: 0.42, doira: -1, prog: 3, lead: 'flute' },
+  shahrisabz: { seed: 4410, scale: 'major',    base: 60, beat: 0.38, doira: 1,  prog: 0, lead: 'bell' },
+  tashkent:   { seed: 2930, scale: 'major',    base: 62, beat: 0.38, doira: 0,  prog: 1, lead: 'flute' },
+  kokand:     { seed: 1709, scale: 'dorian',   base: 64, beat: 0.41, doira: -1, prog: 2, lead: 'bell' },
+  termez:     { seed: 3330, scale: 'minor',    base: 59, beat: 0.45, doira: -1, prog: 3, lead: 'flute' },
+  eternal:    { seed: 7777, scale: 'minor',    base: 62, beat: 0.43, doira: -1, prog: 1, lead: 'bell' },
+  daily:      { seed: 5050, scale: 'major',    base: 64, beat: 0.39, doira: 0,  prog: 2, lead: 'flute' },
 };
 
-// Doira usullari (6/8)
+// Doira usullari (6/8) — faqat yengil urg'u
 export const DOIRA_PATTERNS = [
-  ['dum', null, 'tak', 'tak', null, 'tak'],
-  ['dum', null, null, 'dum', 'tak', null],
-  ['dum', 'tak', null, 'dum', 'tak', 'tak'],
+  ['dum', null, null, 'tak', null, null],
+  ['dum', null, null, 'dum', null, 'tak'],
 ];
+
+// Akkordlar ketma-ketligi: lad pog'onalari (0 = tonika). Oxirgi takt tonikaga qaytadi — halqa silliq.
+export const PROGRESSIONS = [
+  [0, 3, 4, 0, 5, 3, 4, 0],
+  [0, 5, 3, 4, 0, 5, 4, 0],
+  [0, 3, 0, 4, 5, 3, 4, 0],
+  [0, 6, 5, 4, 0, 3, 4, 0],
+];
+
+// Takt ritmlari (6/8, sakkizlik birliklarda): [boshlanish, uzunlik]. Kam va uzun notalar.
+const RHYTHMS = [
+  [[0, 3], [3, 3]],
+  [[0, 2], [2, 1], [3, 3]],
+  [[0, 3], [3, 2], [5, 1]],
+  [[0, 4], [4, 2]],
+  [[0, 2], [3, 3]],
+];
+const END_RHYTHM = [[0, 6]];
+
+// Kuy kompozitori: 2 taktli motiv → A A' B A'' shakli (takrorlanuvchi, eslab qolinadigan),
+// kuchli hissalarda akkord tovushi, ichida faqat silliq (±1–2) harakat.
+export function composeMelody(seed = 1405, progression = PROGRESSIONS[0]) {
+  const rng = createRng(seed);
+  const pick = (a) => a[Math.floor(rng() * a.length)];
+  const lo = 2, hi = 10;
+  const clamp = (v) => Math.max(lo, Math.min(hi, v));
+  const motif = () => [0, 1].map(() => {
+    const r = pick(RHYTHMS);
+    return r.map(([b, len], i) => ({ beat: b, len, off: i === 0 ? 0 : pick([-2, -1, -1, 1, 1, 2]) }));
+  });
+  const A = motif(), B = motif();
+  const plan = [A[0], A[1], A[0], A[1].map((n, i) => ({ ...n, off: -n.off })), B[0], B[1], A[0], END_RHYTHM.map(([b, len]) => ({ beat: b, len, off: 0 }))];
+  const notes = [];
+  let prev = pick([2, 4, 4, 6, 7]);
+  for (let bar = 0; bar < 8; bar++) {
+    const root = progression[bar % progression.length];
+    // eng yaqin akkord tovushi (root, root+2, root+4 va oktavalari)
+    const tones = [];
+    for (let o = -7; o <= 14; o += 7) for (const d of [0, 2, 4]) tones.push(root + d + o);
+    const cand = tones.filter((t) => t >= lo && t <= hi);
+    let anchor = cand.reduce((best, t) => (Math.abs(t - prev) < Math.abs(best - prev) ? t : best), cand[0]);
+    if (bar === 7) {
+      const roots = tones.filter((t) => t >= 0 && t <= hi).filter((t) => ((t - root) % 7 + 7) % 7 === 0);
+      if (roots.length) anchor = roots.reduce((best, t) => (Math.abs(t - prev) < Math.abs(best - prev) ? t : best), roots[0]);
+    }
+    let cur = anchor;
+    for (const n of plan[bar]) {
+      cur = bar === 7 ? cur : clamp(cur + n.off);
+      notes.push({ bar, beat: n.beat, len: n.len, step: cur });
+    }
+    prev = cur;
+  }
+  return notes;
+}
 
 // Mavzu → ijro uchun tayyor ma'lumot (deterministik).
 export function themeMusic(name) {
   const th = MUSIC_THEMES[name] || MUSIC_THEMES.menu;
   const scale = SCALES[th.scale] || SCALE;
-  return { ...th, scaleArr: scale, melody: generateMelody(th.seed), doiraPattern: DOIRA_PATTERNS[th.doira] || DOIRA_PATTERNS[0] };
+  const chords = PROGRESSIONS[th.prog] || PROGRESSIONS[0];
+  return { ...th, scaleArr: scale, chords, melody: composeMelody(th.seed, chords), doiraPattern: DOIRA_PATTERNS[th.doira] || null };
+}
+
+// Nay (yog'och puflama cholg'u) uslubi: toza sinus + ozgina garmonika, kech boshlanuvchi vibrato,
+// yumshoq kirish va so'nish. Keskin hujum yo'q — quloqqa tegmaydi.
+export function flute(freq, sampleRate, duration = 1, { attack = 0.07, release = 0.25 } = {}) {
+  const len = Math.max(1, Math.floor(sampleRate * duration));
+  const out = new Float32Array(len);
+  const rng = createRng(Math.round(freq));
+  let ph = 0, noise = 0;
+  const att = Math.max(1, Math.floor(sampleRate * attack));
+  const rel = Math.min(len, Math.max(1, Math.floor(sampleRate * release)));
+  for (let i = 0; i < len; i++) {
+    const t = i / sampleRate;
+    const vib = 1 + 0.004 * Math.min(1, Math.max(0, (t - 0.2) * 3)) * Math.sin(2 * Math.PI * 5 * t);
+    ph += (2 * Math.PI * freq * vib) / sampleRate;
+    noise = noise * 0.97 + (rng() * 2 - 1) * 0.03; // nafas shovqini (filtrlangan)
+    let env = 1;
+    if (i < att) env = i / att;
+    if (i > len - rel) env *= (len - i) / rel;
+    env *= 1 - 0.25 * Math.min(1, t / Math.max(0.3, duration)); // biroz so'nadi
+    out[i] = (Math.sin(ph) + 0.18 * Math.sin(2 * ph) + 0.05 * Math.sin(3 * ph) + noise * 0.6) * env;
+  }
+  return normalize(out, 0.7);
+}
+
+// Akkord foni (pad): ozgina farqli sozlangan sinuslar, sekin kirish/chiqish — iliq "havo".
+export function pad(freq, sampleRate, duration = 2) {
+  const len = Math.max(1, Math.floor(sampleRate * duration));
+  const out = new Float32Array(len);
+  const att = Math.floor(len * 0.3), rel = Math.floor(len * 0.4);
+  const ws = [0.997, 1, 1.003].map((d) => (2 * Math.PI * freq * d) / sampleRate);
+  for (let i = 0; i < len; i++) {
+    let env = 1;
+    if (i < att) env = Math.sin((i / att) * Math.PI / 2);
+    if (i > len - rel) env *= Math.sin(((len - i) / rel) * Math.PI / 2);
+    out[i] = (Math.sin(ws[0] * i) + Math.sin(ws[1] * i) + Math.sin(ws[2] * i) + 0.15 * Math.sin(2 * ws[1] * i)) * env;
+  }
+  return normalize(out, 0.6);
 }
 
 // Karplus–Strong: chertilgan tor. brightness 0..1 (rubob — yorqinroq, dutor — yumshoqroq).

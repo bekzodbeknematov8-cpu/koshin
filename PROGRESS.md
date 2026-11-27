@@ -1,6 +1,6 @@
 # Koshin — rivojlanish jurnali
 
-Ishlayapti: 2026-11-27 13:22 UTC
+Ishlayapti: yo'q
 
 Keyingi bosqich: **hammasi tugadi** — endi foydalanuvchi sinovi va takliflar (pastdagi "Ochiq xatolar" ro'yxati)
 
@@ -25,8 +25,17 @@ Foydalanuvchi so'rovi (2026-11-26): "yanada yaxshila" — grafika, balans, yangi
 - [x] 4. Ovoz: har shaharga o'z kuyi, yangi effektlar
 - [x] 5. Balans: bosqich qiyinligi va mukofotlarni ko'rib chiqish
 - [x] 6. (2026-11-27) Telefonda musiqa eshitilmadi, shakl qo'yishda g'alati ovoz — tuzatildi
+- [x] 7. (2026-11-27) "Musiqa asabni buzadi, o'zgartir" — musiqa butunlay qayta yozildi (sokin, tuzilgan kuylar)
 
 ## Hisobotlar
+
+### 2026-11-27 — Musiqa qayta yozildi
+- Sabab: eski kuy tasodifiy (random walk) generatsiya qilinardi, tez va notalar ko'p edi — asabga tegardi.
+- Yangi: `composeMelody` — 2 taktli motiv, A A' B A shakli, kuchli hissada akkord tovushi, faqat silliq harakat, oxiri tonikada. Taktda 1–3 ta uzun nota.
+- Akkordlar ketma-ketligi (4 xil), iliq akkord foni (`pad`), past bas, juda past dutor arpejiosi.
+- Bosh cholg'u: nay (`flute`, yumshoq vibrato) yoki qo'ng'iroqcha — shaharga qarab.
+- Temp sekinlashtirildi (0.27–0.35 → 0.38–0.45 s), doira ko'p shaharda o'chirildi, qolganida juda past.
+- Testlar: 105/105 (yangi: kuy tuzilishi, nay/pad tembrlari), smoke va E2E o'tdi.
 
 ### 2026-11-27 10:30 UTC — Tekshiruv
 - Ochiq xatolar ro'yxati bo'sh, yangi ish yo'q.
