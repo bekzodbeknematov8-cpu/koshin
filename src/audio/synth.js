@@ -76,6 +76,29 @@ export function pluck(freq, sampleRate, duration = 0.8, { brightness = 0.6, deca
   return normalize(out, 0.8);
 }
 
+// Yumshoq "qo'ng'iroqcha" ovozi (kalimba/marimba uslubi): sinuslar yig'indisi, shovqinsiz.
+// Telefon karnayida ham toza eshitiladi; fon kuyi va shakl qo'yish ovozi uchun.
+export function softTone(freq, sampleRate, duration = 0.6, { brightness = 0.5, attack = 0.006 } = {}) {
+  const len = Math.max(1, Math.floor(sampleRate * duration));
+  const out = new Float32Array(len);
+  const b = Math.max(0, Math.min(1, brightness));
+  // [nisbat, kuch, so'nish tezligi]
+  const partials = [[1, 1, 4], [2, 0.25 * b, 7], [3, 0.12 * b, 10], [4.2, 0.06 * b, 16]];
+  const nyq = sampleRate / 2;
+  const att = Math.max(1, Math.floor(sampleRate * attack));
+  for (const [ratio, amp, dk] of partials) {
+    const f = freq * ratio;
+    if (f >= nyq * 0.9 || amp <= 0) continue;
+    const w = (2 * Math.PI * f) / sampleRate;
+    const k = dk / Math.max(0.15, duration);
+    for (let i = 0; i < len; i++) out[i] += Math.sin(w * i) * amp * Math.exp(-(i / sampleRate) * k);
+  }
+  for (let i = 0; i < Math.min(att, len); i++) out[i] *= i / att;
+  const fade = Math.min(len, Math.floor(sampleRate * 0.02));
+  for (let i = 0; i < fade; i++) out[len - 1 - i] *= i / fade;
+  return normalize(out, 0.7);
+}
+
 // Doira: past "dum" yoki baland "tak".
 export function drum(sampleRate, kind = 'dum', seed = 7) {
   const dur = kind === 'dum' ? 0.35 : 0.12;
@@ -104,8 +127,8 @@ export function normalize(arr, peak = 0.8) {
 
 // Effekt "notalari": [{ step, t (soniya), oct?, drum? }]
 export const SFX = {
-  pick: [{ step: 4, t: 0, b: 0.35, dur: 0.25 }],
-  place: [{ step: 0, t: 0, oct: -1, b: 0.4, dur: 0.4 }],
+  pick: [{ step: 7, t: 0, soft: true, b: 0.3, dur: 0.15, v: 0.4 }],
+  place: [{ step: 4, t: 0, soft: true, b: 0.35, dur: 0.22, v: 0.7 }, { step: 7, t: 0.045, soft: true, b: 0.3, dur: 0.3, v: 0.45 }],
   clear: [{ step: 2, t: 0 }, { step: 4, t: 0.06 }, { step: 7, t: 0.12 }],
   combo: [{ step: 0, t: 0 }, { step: 2, t: 0.05 }, { step: 4, t: 0.1 }, { step: 7, t: 0.15 }, { step: 9, t: 0.2 }, { drum: 'dum', t: 0 }, { drum: 'tak', t: 0.2 }],
   win: [{ step: 0, t: 0 }, { step: 4, t: 0.12 }, { step: 7, t: 0.24 }, { step: 11, t: 0.36 }, { step: 14, t: 0.5, dur: 1.2 }, { drum: 'dum', t: 0 }, { drum: 'tak', t: 0.36 }, { drum: 'dum', t: 0.5 }],

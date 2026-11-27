@@ -116,7 +116,7 @@ canvas.addEventListener('pointerdown', (e) => {
   if (activePointer !== null) return; // bir vaqtda bitta barmoq
   activePointer = e.pointerId;
   try { canvas.setPointerCapture(e.pointerId); } catch {}
-  if (app.audio && !app.audio.started) app.audio.unlock(); // ovozga ruxsat faqat teginishdan keyin
+  if (app.audio) app.audio.unlock(); // ovozga ruxsat faqat teginishdan keyin
   if (app.adOverlay) { adOverlayTap(); requestFrame(); return; }
   app.scene && app.scene.pointerDown && app.scene.pointerDown(...pos(e));
   requestFrame();
@@ -173,6 +173,8 @@ setLanguage(settings.lang || pickLanguage(navigator.languages || [navigator.lang
 const audio = createSound(settings);
 app.audio = audio;
 app.sound = (name) => audio.play(name);
+// Sensor ekranda brauzer ovozga faqat barmoq ko'tarilganda (pointerup/touchend) ruxsat beradi
+for (const ev of ['pointerup', 'touchend', 'click', 'keydown']) document.addEventListener(ev, () => audio.unlock(), { passive: true });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { audio.pause(); saveEndless(); } else if (audio.started) audio.resume(); });
 
 let progress = sanitizeProgress(load('koshin.progress', createProgress()));

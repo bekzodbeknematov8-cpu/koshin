@@ -1,5 +1,5 @@
 // WebAudio orqali ovoz va fon musiqasi. Bufferlar sintez qilinadi va keshlanadi.
-import { pluck, drum, midiToFreq, scaleNote, SFX, themeMusic } from './synth.js';
+import { pluck, softTone, drum, midiToFreq, scaleNote, SFX, themeMusic } from './synth.js';
 
 export function createSound(settings) {
   let ctx = null, master = null, sfxGain = null, musicGain = null;
@@ -13,9 +13,21 @@ export function createSound(settings) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
     ctx = new AC();
-    master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
-    sfxGain = ctx.createGain(); sfxGain.gain.value = 0.55; sfxGain.connect(master);
-    musicGain = ctx.createGain(); musicGain.gain.value = 0.18; musicGain.connect(master);
+    // master → yumshatuvchi filtr → kompressor (bir vaqtda ko'p nota chalinsa ham xirillamaydi)
+    master = ctx.createGain(); master.gain.value = 0.9;
+    let tail = ctx.destination;
+    if (ctx.createDynamicsCompressor) {
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -14; comp.ratio.value = 4; comp.attack.value = 0.005; comp.release.value = 0.2;
+      comp.connect(tail); tail = comp;
+    }
+    if (ctx.createBiquadFilter) {
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200; lp.Q.value = 0.5;
+      lp.connect(tail); tail = lp;
+    }
+    master.connect(tail);
+    sfxGain = ctx.createGain(); sfxGain.gain.value = 0.5; sfxGain.connect(master);
+    musicGain = ctx.createGain(); musicGain.gain.value = 0.42; musicGain.connect(master);
     return ctx;
   }
 
@@ -41,6 +53,7 @@ export function createSound(settings) {
     if (n.drum) return playBuf(buffer('drum:' + n.drum, (sr) => drum(sr, n.drum)), when, out, vol * 0.8);
     const m = n.music ? scaleNote(n.step, n.oct || 0, theme.scaleArr, theme.base) : scaleNote(n.step, n.oct || 0);
     const b = n.b ?? 0.6, dur = n.dur ?? 0.7;
+    if (n.soft) return playBuf(buffer(`s:${m}:${b}:${dur}`, (sr) => softTone(midiToFreq(m), sr, dur, { brightness: b })), when, out, vol * (n.v ?? 1));
     playBuf(buffer(`p:${m}:${b}:${dur}`, (sr) => pluck(midiToFreq(m), sr, dur, { brightness: b, seed: m })), when, out, vol);
   }
 
@@ -55,13 +68,15 @@ export function createSound(settings) {
 
   function schedule() {
     const per = 6; // 6/8
+    // fonda ushlab qolingan bo'lsa — to'planib qolgan notalarni birdan chalmaslik
+    if (nextTime < ctx.currentTime) nextTime = ctx.currentTime + 0.05;
     while (nextTime < ctx.currentTime + 0.6) {
       const bar = Math.floor(pos / per) % 8, beat = pos % per;
-      for (const n of theme.melody) if (n.bar === bar && n.beat === beat) note({ step: n.step, b: 0.45, dur: 0.9, music: true }, nextTime, musicGain, 0.9);
-      if (beat === 0) note({ step: [0, 0, 3, 0, 0, 4, 3, 0][bar], oct: -1, b: 0.3, dur: 1.6, music: true }, nextTime, musicGain, 0.6); // dutor bas tori
-      if (beat === 3 && bar % 2 === 1) note({ step: 4, oct: -1, b: 0.3, dur: 1.2, music: true }, nextTime, musicGain, 0.35); // ikkinchi tor
+      for (const n of theme.melody) if (n.bar === bar && n.beat === beat) note({ step: n.step, b: 0.5, dur: 0.9, music: true, soft: true }, nextTime, musicGain, 0.8);
+      if (beat === 0) note({ step: [0, 0, 3, 0, 0, 4, 3, 0][bar], oct: -1, b: 0.25, dur: 1.6, music: true, soft: true }, nextTime, musicGain, 0.55); // bas
+      if (beat === 3 && bar % 2 === 1) note({ step: 4, oct: -1, b: 0.25, dur: 1.2, music: true, soft: true }, nextTime, musicGain, 0.3); // ikkinchi tor
       const d = theme.doiraPattern[beat];
-      if (d) note({ drum: d }, nextTime, musicGain, 0.35);
+      if (d) note({ drum: d }, nextTime, musicGain, 0.22);
       nextTime += theme.beat;
       pos++;
     }
@@ -80,9 +95,10 @@ export function createSound(settings) {
   }
 
   // Brauzerlar ovozni faqat foydalanuvchi teginishidan keyin ruxsat beradi.
+  // Har teginishda chaqiriladi: telefonlarda birinchi urinish (pointerdown) ruxsat bermasligi mumkin.
   function unlock() {
     if (!ensure()) return;
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state !== 'running' && !document.hidden) { try { ctx.resume(); } catch {} }
     if (settings.music !== false) startMusic();
   }
 
@@ -97,5 +113,5 @@ export function createSound(settings) {
     pos = Math.ceil(pos / 6) * 6; // yangi takt boshidan
   }
 
-  return { play, startMusic, stopMusic, unlock, pause, resume, setTheme, get theme() { return themeName; }, get started() { return !!ctx; } };
+  return { play, startMusic, stopMusic, unlock, pause, resume, setTheme, get theme() { return themeName; }, get started() { return !!ctx; }, get running() { return !!ctx && ctx.state === 'running' && !!musicTimer; } };
 }

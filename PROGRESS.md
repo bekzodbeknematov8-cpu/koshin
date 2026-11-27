@@ -24,8 +24,15 @@ Foydalanuvchi so'rovi (2026-11-26): "yanada yaxshila" — grafika, balans, yangi
 - [x] 3. Grafika: tozalash nuri, to'lqin halqasi, ochko uchishi, "perfect" chaqnashi
 - [x] 4. Ovoz: har shaharga o'z kuyi, yangi effektlar
 - [x] 5. Balans: bosqich qiyinligi va mukofotlarni ko'rib chiqish
+- [x] 6. (2026-11-27) Telefonda musiqa eshitilmadi, shakl qo'yishda g'alati ovoz — tuzatildi
 
 ## Hisobotlar
+
+### 2026-11-27 — Ovoz tuzatildi
+- Musiqa yo'q edi: sensor ekranda brauzer ovozga faqat barmoq ko'tarilganda ruxsat beradi, `unlock` esa bir marta pointerdown'da chaqirilardi. Endi har teginishda (pointerup/touchend/click) qayta uriniladi; fondan qaytganda to'plangan notalar birdan chalinmaydi.
+- Musiqa ovozi kuchaytirildi (0.18 → 0.42), kuy yumshoq `softTone` (kalimba uslubi) bilan chalinadi.
+- Shakl qo'yish ovozi: past, shovqinli tor o'rniga ikki notali yumshoq qo'ng'iroqcha. Master zanjiriga lowpass filtr va kompressor qo'shildi.
+- Testlar: 103/103, smoke va E2E o'tdi.
 
 ### 2026-11-24 — 1-bosqich
 - Qilindi: `src/logic/` (board, shapes, game — DOM'siz mantiq), `src/main.js` (Canvas chizish, Pointer Events orqali sudrab qo'yish: sensor ekran + sichqoncha, shakl barmoqdan yuqorida ko'rinadi, joylashadigan joy shaffof ko'rsatiladi), `index.html`.

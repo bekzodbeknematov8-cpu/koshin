@@ -125,3 +125,18 @@ test('musiqa: har shahar o\'z kuyi, notalar lad ichida', async () => {
   assert.equal(themeMusic('yoq').seed, MUSIC_THEMES.menu.seed);
   assert.equal(sn(2, 0, SCALES.major, 60), 64);
 });
+
+test('softTone: toza, chegaralangan, klik yo\'q (boshi va oxiri jim)', async () => {
+  const { softTone, SFX: S } = await import('../src/audio/synth.js');
+  const sr = 22050;
+  for (const f of [110, 294, 880, 2000]) {
+    const a = softTone(f, sr, 0.4, { brightness: 0.5 });
+    assert.equal(a.length, Math.floor(sr * 0.4));
+    let peak = 0;
+    for (const v of a) { assert.ok(Number.isFinite(v)); peak = Math.max(peak, Math.abs(v)); }
+    assert.ok(peak <= 0.7001 && peak > 0.5);
+    assert.ok(Math.abs(a[0]) < 0.01 && Math.abs(a[a.length - 1]) < 0.01);
+  }
+  // shakl qo'yish ovozi endi yumshoq va qisqa
+  assert.ok(S.place.every((n) => n.soft && n.dur <= 0.35));
+});
