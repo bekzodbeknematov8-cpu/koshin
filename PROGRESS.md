@@ -1,6 +1,6 @@
 # Koshin — rivojlanish jurnali
 
-Ishlayapti: 2026-11-27 10:29 UTC
+Ishlayapti: yo'q
 
 Keyingi bosqich: **hammasi tugadi** — endi foydalanuvchi sinovi va takliflar (pastdagi "Ochiq xatolar" ro'yxati)
 
@@ -27,6 +27,10 @@ Foydalanuvchi so'rovi (2026-11-26): "yanada yaxshila" — grafika, balans, yangi
 - [x] 6. (2026-11-27) Telefonda musiqa eshitilmadi, shakl qo'yishda g'alati ovoz — tuzatildi
 
 ## Hisobotlar
+
+### 2026-11-27 10:30 UTC — Tekshiruv
+- Ochiq xatolar ro'yxati bo'sh, yangi ish yo'q.
+- `npm test`: 103/103 o'tdi; smoke (kadr ~0.5 ms, internetsiz OK) va E2E o'tdi.
 
 ### 2026-11-27 — Ovoz tuzatildi
 - Musiqa yo'q edi: sensor ekranda brauzer ovozga faqat barmoq ko'tarilganda ruxsat beradi, `unlock` esa bir marta pointerdown'da chaqirilardi. Endi har teginishda (pointerup/touchend/click) qayta uriniladi; fondan qaytganda to'plangan notalar birdan chalinmaydi.
