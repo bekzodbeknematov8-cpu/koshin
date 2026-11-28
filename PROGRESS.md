@@ -1,6 +1,6 @@
 # Koshin — rivojlanish jurnali
 
-Ishlayapti: yo'q
+Ishlayapti: 2026-11-28 05:29 UTC
 
 Keyingi bosqich: **hammasi tugadi** — endi foydalanuvchi sinovi va takliflar (pastdagi "Ochiq xatolar" ro'yxati)
 
